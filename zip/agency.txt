@@ -1,0 +1,2 @@
+agency_id,agency_name,agency_url,agency_timezone,agency_lang,agency_phone,agency_email
+terzic-bus,Terzić-bus d.o.o.,https://www.terzic-bus.hr,Europe/Zagreb,hr,+385 35 273 102,terzicbus@gmail.com

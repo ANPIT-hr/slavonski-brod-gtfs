@@ -1,0 +1,9 @@
+route_id,agency_id,route_short_name,route_long_name,route_desc,route_type,route_color,route_text_color
+L0,terzic-bus,0,Centar,A. kolodvor – Centar (kružna),3,1F4E79,FFFFFF
+L1,terzic-bus,1,Vinogorje,A. kolodvor ↔ Vinogorje,3,1F4E79,FFFFFF
+L1P,terzic-bus,1+,Vinogorska – Janiševac,Vinogorska Š – Košarevac – Janiševac – Kerdeni,3,1F4E79,FFFFFF
+L2,terzic-bus,2,Podvinje,A. kolodvor ↔ Podvinje – Čavlički,3,1F4E79,FFFFFF
+L3,terzic-bus,3,Brodski Varoš – Bečic,A. kolodvor ↔ Brodski Varoš – Bečic,3,1F4E79,FFFFFF
+L4,terzic-bus,4,Šestina C,A. kolodvor ↔ Šestina C,3,1F4E79,FFFFFF
+L5,terzic-bus,5,S. Radića – Jelas,A. kolodvor ↔ S. Radića – Jelas,3,1F4E79,FFFFFF
+L6,terzic-bus,6,Bjeliš,A. kolodvor ↔ Bjeliš – Drvna industrija,3,1F4E79,FFFFFF
