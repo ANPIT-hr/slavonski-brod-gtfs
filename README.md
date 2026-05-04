@@ -5,8 +5,10 @@ GTFS (General Transit Feed Specification) feed for the city bus network of **Sla
 This repository is the source of truth for the feed. Each release publishes a single `slavonski-brod-gtfs.zip` to GitHub Releases at a stable URL that Google Maps polls automatically:
 
 ```
-https://github.com/<user>/<repo>/releases/latest/download/slavonski-brod-gtfs.zip
+https://github.com/frenki1004/slavonski-brod-gtfs/releases/latest/download/slavonski-brod-gtfs.zip
 ```
+
+The `latest/download/` URL never changes across versions — every new release replaces the file Google fetches.
 
 ---
 
@@ -205,7 +207,8 @@ Whenever something in the schedule changes:
 3. If validity is extended, bump `feed_end_date` in `feed_info.txt` **and** `end_date` in `calendar.txt`, **and** add the new year's holidays/school breaks to `calendar_dates.txt`.
 4. Build the zip (next section).
 5. Validate (section after that).
-6. Commit and tag a release (section after that).
+6. Push the source changes to GitHub (section after that).
+7. Cut a release with the zip attached (last section) — this is what Google sees.
 
 ---
 
@@ -246,17 +249,32 @@ The validator output is gitignored. Errors must be fixed; warnings are advisory 
 
 ---
 
-## Publishing to GitHub Releases
+## Pushing source changes to GitHub
 
-Once validated, cut a release. Google polls the `/latest/download/` URL, which always points to the newest release's attached zip — the URL never changes across versions.
+The repo lives at https://github.com/frenki1004/slavonski-brod-gtfs (origin already configured, tracking `main`).
 
-One-time: create the GitHub repo and push.
+Everyday flow after editing files in `zip/`:
 
 ```bash
-gh repo create <user>/<repo> --public --source=. --remote=origin --push
+git add zip/                                                # or specific files: git add zip/stop_times.txt
+git commit -m "Update L1 weekday schedule for September 2026"
+git push
 ```
 
-Each subsequent release:
+Pushing the source files alone does **not** update the feed Google sees. Google fetches the zip attached to the latest GitHub Release. To make a change visible to Google, you must also cut a release (next section).
+
+A first-time clone on a different machine:
+
+```bash
+git clone https://github.com/frenki1004/slavonski-brod-gtfs.git
+cd slavonski-brod-gtfs
+```
+
+---
+
+## Publishing a release (what Google actually sees)
+
+Once the source is pushed and the zip is built and validated, cut a GitHub Release with the zip attached. Google polls the `/latest/download/` URL, which always points to the newest release's attached zip — the URL never changes across versions.
 
 ```bash
 # Tag-and-attach in one go (gh CLI)
@@ -265,10 +283,18 @@ gh release create v2026.06 slavonski-brod-gtfs.zip \
   --notes "Initial publication. Validity 2026-06-01 to 2027-05-31."
 ```
 
+Tagging convention: `vYYYY.MM` based on when the schedule edition takes effect (e.g. `v2026.06`, `v2027.06`). For mid-cycle corrections add a patch suffix: `v2026.06.1`.
+
+To replace the zip on an existing release without bumping the tag (e.g. fixing a validator error caught after publish):
+
+```bash
+gh release upload v2026.06 slavonski-brod-gtfs.zip --clobber
+```
+
 The stable URL Google polls:
 
 ```
-https://github.com/<user>/<repo>/releases/latest/download/slavonski-brod-gtfs.zip
+https://github.com/frenki1004/slavonski-brod-gtfs/releases/latest/download/slavonski-brod-gtfs.zip
 ```
 
 ---
