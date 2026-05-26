@@ -1,13 +1,18 @@
 stop_id,stop_name,stop_lat,stop_lon,stop_desc
-STOP_BUS_STN,Autobusni kolodvor,45.157300,18.012600,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_BUS_STN,Autobusni kolodvor,45.162522,18.009741,single pole (terminal)
+STOP_KORZO_A,Korzo,45.155635,18.010880,pole A
+STOP_KORZO_B,Korzo,45.155747,18.011571,pole B
+STOP_TRZNICA_A,Tržnica,45.154282,18.023913,pole A
+STOP_TRZNICA_B,Tržnica,45.154628,18.023838,pole B
+STOP_BOROVSKA_A,Borovska,45.159809,18.004133,pole A
+STOP_BOROVSKA_B,Borovska,45.160097,18.006425,pole B
 STOP_KORZO,Korzo,45.157300,18.013200,PLACEHOLDER LOCATION — replace with actual coordinates
 STOP_TRZNICA,Tržnica,45.157300,18.013800,PLACEHOLDER LOCATION — replace with actual coordinates
 STOP_ZRINSKA,Zrinska,45.157300,18.014400,PLACEHOLDER LOCATION — replace with actual coordinates
 STOP_BOROVSKA,Borovska,45.157300,18.015000,PLACEHOLDER LOCATION — replace with actual coordinates
 STOP_GUPCEVA,Gupčeva,45.157300,18.015600,PLACEHOLDER LOCATION — replace with actual coordinates
 STOP_HEBRANG,Hebrang,45.157300,18.016200,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_COLOSSEUM,Trg. centar Colosseum,45.157300,18.016800,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_KAUFLAND,Petra Svačića - KAUFLAND,45.157300,18.017400,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_COLOSSEUM,Trg. centar Colosseum,45.159460,17.997133,
 STOP_BR108_1,108. brigade ZNG I,45.157300,18.018000,PLACEHOLDER LOCATION — replace with actual coordinates
 STOP_BR108_2,108. brigade ZNG II,45.157900,18.012600,PLACEHOLDER LOCATION — replace with actual coordinates
 STOP_VINOGRADSKA_1,Vinogradska I,45.157900,18.013200,PLACEHOLDER LOCATION — replace with actual coordinates

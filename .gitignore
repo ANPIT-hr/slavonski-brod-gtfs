@@ -1,6 +1,6 @@
 # Built feed bundle — regenerated for each release and attached to GitHub Release.
 # Don't track it in the repo to avoid noisy diffs of binary archives.
-slavonski-brod-gtfs.zip
+dist/
 
 # MobilityData GTFS Validator output
 validation_report/
