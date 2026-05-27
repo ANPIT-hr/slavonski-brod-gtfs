@@ -1,5 +1,21 @@
 # LINIJA 0 — Centar (kružna)
 
+<!-- COORD-STATUS:START -->
+## Coordinate status — 8/8 stops set
+
+Auto-generated from `gtfs/stops.txt`. ✅ = real coordinate set, ⬜ = still placeholder. Regenerate with `python3 tools/coord_status.py`.
+
+- ✅ Autobusni kolodvor `STOP_BUS_STN`
+- ✅ Tržnica `STOP_TRZNICA_B`
+- ✅ Korzo `STOP_KORZO_B`
+- ✅ Borovska `STOP_BOROVSKA_B`
+- ✅ Trg. centar Colosseum `STOP_COLOSSEUM`
+- ✅ Korzo `STOP_KORZO_A`
+- ✅ Borovska `STOP_BOROVSKA_A`
+- ✅ Tržnica `STOP_TRZNICA_A`
+
+<!-- COORD-STATUS:END -->
+
 L0 is a loop with **two directions**, each using a different pole at the shared mid-route stops:
 
 - **Smjer A** (direction_id=0): A. kolodvor → Colosseum → Borovska A → Korzo A → Tržnica A → A. kolodvor

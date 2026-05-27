@@ -1,5 +1,31 @@
 # LINIJA 6 — Autobusni kolodvor → Bjeliš → Autobusni kolodvor
 
+<!-- COORD-STATUS:START -->
+## Coordinate status — 12/18 stops set
+
+Auto-generated from `gtfs/stops.txt`. ✅ = real coordinate set, ⬜ = still placeholder. Regenerate with `python3 tools/coord_status.py`.
+
+- ✅ Autobusni kolodvor `STOP_BUS_STN`
+- ✅ Korzo `STOP_KORZO_A`
+- ✅ Zrinska `STOP_ZRINSKA_B`
+- ✅ Tržnica `STOP_TRZNICA_B`
+- ✅ Tome Bakača I `STOP_T_BAKACA_1`
+- ✅ Tome Bakača II `STOP_T_BAKACA_2_A`
+- ✅ Tome Bakača III `STOP_T_BAKACA_3_A`
+- ✅ Marije Jurić Zagorke `STOP_MJ_ZAGORKE`
+- ⬜ Bjeliš `STOP_BJELIS`
+- ⬜ Ferde Filipovića I `STOP_F_FILIPOVICA_1`
+- ⬜ Ferde Filipovića II `STOP_F_FILIPOVICA_2`
+- ⬜ Sv. Lovre `STOP_SV_LOVRE`
+- ⬜ Drvna industrija `STOP_DRVNA_IND`
+- ✅ Tome Bakača III `STOP_T_BAKACA_3_B`
+- ⬜ Tome Bakača II `STOP_T_BAKACA_2_B`
+- ✅ Tržnica `STOP_TRZNICA_A`
+- ✅ Zrinska `STOP_ZRINSKA_A`
+- ✅ Korzo `STOP_KORZO_B`
+
+<!-- COORD-STATUS:END -->
+
 ## Weekday (pon–pet) — A. kolodvor → Bjeliš → A. kolodvor
 
 Prometuje: 1 2 3 4 5 (ponedjeljak–petak)
@@ -7,12 +33,12 @@ Prometuje: 1 2 3 4 5 (ponedjeljak–petak)
 | Polazak # | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
 |---|---|---|---|---|---|---|---|---|
 | A. kolodvor | 6:15 | 7:15 | 9:15 | 12:15 | 13:15 | 14:05 | 15:15 | 19:15 |
-| Korzo | 6:18 | 7:18 | 9:18 | 12:18 | 13:18 | 14:08 | 15:18 | 19:18 |
-| Zrinska | 6:20 | 7:20 | 9:20 | 12:20 | 13:20 | 14:10 | 15:20 | 19:20 |
-| Tržnica | 6:21 | 7:21 | 9:21 | 12:21 | 13:21 | 14:11 | 15:21 | 19:21 |
+| Korzo A | 6:18 | 7:18 | 9:18 | 12:18 | 13:18 | 14:08 | 15:18 | 19:18 |
+| Zrinska B | 6:20 | 7:20 | 9:20 | 12:20 | 13:20 | 14:10 | 15:20 | 19:20 |
+| Tržnica B | 6:21 | 7:21 | 9:21 | 12:21 | 13:21 | 14:11 | 15:21 | 19:21 |
 | Tome Bakača I | 6:22 | 7:22 | 9:22 | 12:22 | 13:22 | 14:12 | 15:22 | 19:22 |
-| Tome Bakača II | 6:23 | 7:23 | 9:23 | 12:23 | 13:23 | 14:13 | 15:23 | 19:23 |
-| Tome Bakača III | 6:24 | 7:24 | 9:24 | 12:24 | 13:24 | 14:14 | 15:24 | 19:24 |
+| Tome Bakača II A | 6:23 | 7:23 | 9:23 | 12:23 | 13:23 | 14:13 | 15:23 | 19:23 |
+| Tome Bakača III A | 6:24 | 7:24 | 9:24 | 12:24 | 13:24 | 14:14 | 15:24 | 19:24 |
 | Marije Jurić Zagorke | 6:25 | 7:25 | 9:25 | 12:25 | 13:25 | 14:15 | 15:25 | 19:25 |
 | Bjeliš | 6:26 | 7:26 | 9:26 | 12:26 | 13:26 | 14:16 | 15:26 | 19:26 |
 | Ferde Filipovića I | 6:27 | 7:27 | 9:27 | 12:27 | 13:27 | 14:17 | 15:27 | 19:27 |
@@ -24,11 +50,11 @@ Prometuje: 1 2 3 4 5 (ponedjeljak–petak)
 | Ferde Filipovića I | 6:33 | 7:33 | 9:33 | 12:33 | 13:33 | 14:23 | 15:33 | 19:33 |
 | Bjeliš | 6:34 | 7:34 | 9:34 | 12:34 | 13:34 | 14:24 | 15:34 | 19:34 |
 | Marije Jurić Zagorke | 6:35 | 7:35 | 9:35 | 12:35 | 13:35 | 14:25 | 15:35 | 19:35 |
-| Tome Bakača III | 6:36 | 7:36 | 9:36 | 12:36 | 13:36 | 14:26 | 15:36 | 19:36 |
-| Tome Bakača II | 6:37 | 7:37 | 9:37 | 12:37 | 13:37 | 14:27 | 15:37 | 19:37 |
-| Tržnica | 6:38 | 7:38 | 9:38 | 12:38 | 13:38 | 14:28 | 15:38 | 19:38 |
-| Zrinska | 6:39 | 7:39 | 9:39 | 12:39 | 13:39 | 14:29 | 15:39 | 19:39 |
-| Korzo | 6:42 | 7:42 | 9:42 | 12:42 | 13:42 | 14:32 | 15:42 | 19:42 |
+| Tome Bakača III B | 6:36 | 7:36 | 9:36 | 12:36 | 13:36 | 14:26 | 15:36 | 19:36 |
+| Tome Bakača II B | 6:37 | 7:37 | 9:37 | 12:37 | 13:37 | 14:27 | 15:37 | 19:37 |
+| Tržnica A | 6:38 | 7:38 | 9:38 | 12:38 | 13:38 | 14:28 | 15:38 | 19:38 |
+| Zrinska A | 6:39 | 7:39 | 9:39 | 12:39 | 13:39 | 14:29 | 15:39 | 19:39 |
+| Korzo B | 6:42 | 7:42 | 9:42 | 12:42 | 13:42 | 14:32 | 15:42 | 19:42 |
 | A. kolodvor | 6:45 | 7:45 | 9:45 | 12:45 | 13:45 | 14:35 | 15:45 | 19:45 |
 
 ## Subota, školski ljetni i zimski praznici (6, LJ, Z)
@@ -38,12 +64,12 @@ Prometuje: 6, LJ, Z
 | Polazak # | 1 | 2 | 3 | 4 | 5 | 6 | 7 |
 |---|---|---|---|---|---|---|---|
 | A. kolodvor | 6:15 | 7:15 | 9:15 | 12:15 | 13:15 | 15:15 | 17:30 |
-| Korzo | 6:18 | 7:18 | 9:18 | 12:18 | 13:18 | 15:18 | 17:33 |
-| Zrinska | 6:20 | 7:20 | 9:20 | 12:20 | 13:20 | 15:20 | 17:35 |
-| Tržnica | 6:21 | 7:21 | 9:21 | 12:21 | 13:21 | 15:21 | 17:36 |
+| Korzo A | 6:18 | 7:18 | 9:18 | 12:18 | 13:18 | 15:18 | 17:33 |
+| Zrinska B | 6:20 | 7:20 | 9:20 | 12:20 | 13:20 | 15:20 | 17:35 |
+| Tržnica B | 6:21 | 7:21 | 9:21 | 12:21 | 13:21 | 15:21 | 17:36 |
 | Tome Bakača I | 6:22 | 7:22 | 9:22 | 12:22 | 13:22 | 15:22 | 17:37 |
-| Tome Bakača II | 6:23 | 7:23 | 9:23 | 12:23 | 13:23 | 15:23 | 17:38 |
-| Tome Bakača III | 6:24 | 7:24 | 9:24 | 12:24 | 13:24 | 15:24 | 17:39 |
+| Tome Bakača II A | 6:23 | 7:23 | 9:23 | 12:23 | 13:23 | 15:23 | 17:38 |
+| Tome Bakača III A | 6:24 | 7:24 | 9:24 | 12:24 | 13:24 | 15:24 | 17:39 |
 | Marije Jurić Zagorke | 6:25 | 7:25 | 9:25 | 12:25 | 13:25 | 15:25 | 17:40 |
 | Bjeliš | 6:26 | 7:26 | 9:26 | 12:26 | 13:26 | 15:26 | 17:41 |
 | Ferde Filipovića I | 6:27 | 7:27 | 9:27 | 12:27 | 13:27 | 15:27 | 17:42 |
@@ -55,11 +81,11 @@ Prometuje: 6, LJ, Z
 | Ferde Filipovića I | 6:33 | 7:33 | 9:33 | 12:33 | 13:33 | 15:33 | 17:48 |
 | Bjeliš | 6:34 | 7:34 | 9:34 | 12:34 | 13:34 | 15:34 | 17:49 |
 | Marije Jurić Zagorke | 6:35 | 7:35 | 9:35 | 12:35 | 13:35 | 15:35 | 17:50 |
-| Tome Bakača III | 6:36 | 7:36 | 9:36 | 12:36 | 13:36 | 15:36 | 17:51 |
-| Tome Bakača II | 6:37 | 7:37 | 9:37 | 12:37 | 13:37 | 15:37 | 17:52 |
-| Tržnica | 6:38 | 7:38 | 9:38 | 12:38 | 13:38 | 15:38 | 17:53 |
-| Zrinska | 6:39 | 7:39 | 9:39 | 12:39 | 13:39 | 15:39 | 17:54 |
-| Korzo | 6:42 | 7:42 | 9:42 | 12:42 | 13:42 | 15:42 | 17:57 |
+| Tome Bakača III B | 6:36 | 7:36 | 9:36 | 12:36 | 13:36 | 15:36 | 17:51 |
+| Tome Bakača II B | 6:37 | 7:37 | 9:37 | 12:37 | 13:37 | 15:37 | 17:52 |
+| Tržnica A | 6:38 | 7:38 | 9:38 | 12:38 | 13:38 | 15:38 | 17:53 |
+| Zrinska A | 6:39 | 7:39 | 9:39 | 12:39 | 13:39 | 15:39 | 17:54 |
+| Korzo B | 6:42 | 7:42 | 9:42 | 12:42 | 13:42 | 15:42 | 17:57 |
 | A. kolodvor | 6:45 | 7:45 | 9:45 | 12:45 | 13:45 | 15:45 | 18:00 |
 
 ## Nedjelja i praznici (7, P)
@@ -69,12 +95,12 @@ Prometuje: 7, P
 | Polazak # | 1 | 2 | 3 | 4 |
 |---|---|---|---|---|
 | A. kolodvor | 9:15 | 12:15 | 15:15 | 17:50 |
-| Korzo | 9:18 | 12:18 | 15:18 | 17:53 |
-| Zrinska | 9:20 | 12:20 | 15:20 | 17:55 |
-| Tržnica | 9:21 | 12:21 | 15:21 | 17:56 |
+| Korzo A | 9:18 | 12:18 | 15:18 | 17:53 |
+| Zrinska B | 9:20 | 12:20 | 15:20 | 17:55 |
+| Tržnica B | 9:21 | 12:21 | 15:21 | 17:56 |
 | Tome Bakača I | 9:22 | 12:22 | 15:22 | 17:57 |
-| Tome Bakača II | 9:23 | 12:23 | 15:23 | 17:58 |
-| Tome Bakača III | 9:24 | 12:24 | 15:24 | 17:59 |
+| Tome Bakača II A | 9:23 | 12:23 | 15:23 | 17:58 |
+| Tome Bakača III A | 9:24 | 12:24 | 15:24 | 17:59 |
 | Marije Jurić Zagorke | 9:25 | 12:25 | 15:25 | 18:00 |
 | Bjeliš | 9:26 | 12:26 | 15:26 | 18:01 |
 | Ferde Filipovića I | 9:27 | 12:27 | 15:27 | 18:02 |
@@ -86,12 +112,28 @@ Prometuje: 7, P
 | Ferde Filipovića I | 9:33 | 12:33 | 15:33 | 18:08 |
 | Bjeliš | 9:34 | 12:34 | 15:34 | 18:09 |
 | Marije Jurić Zagorke | 9:35 | 12:35 | 15:35 | 18:10 |
-| Tome Bakača III | 9:36 | 12:36 | 15:36 | 18:11 |
-| Tome Bakača II | 9:37 | 12:37 | 15:37 | 18:12 |
-| Tržnica | 9:38 | 12:38 | 15:38 | 18:13 |
-| Zrinska | 9:39 | 12:39 | 15:39 | 18:14 |
-| Korzo | 9:42 | 12:42 | 15:42 | 18:17 |
+| Tome Bakača III B | 9:36 | 12:36 | 15:36 | 18:11 |
+| Tome Bakača II B | 9:37 | 12:37 | 15:37 | 18:12 |
+| Tržnica A | 9:38 | 12:38 | 15:38 | 18:13 |
+| Zrinska A | 9:39 | 12:39 | 15:39 | 18:14 |
+| Korzo B | 9:42 | 12:42 | 15:42 | 18:17 |
 | A. kolodvor | 9:45 | 12:45 | 15:45 | 18:20 |
+
+## Stop poles (A vs B)
+
+L6 runs out to Drvna industrija and back, passing several stops twice — once each way — at different physical poles. Per operator info, the central stops use a mixed pattern (not the same as L1); the Tome Bakača stops follow the simple **A = outbound, B = inbound** rule:
+
+| Stop | Outbound (A. kolodvor → Drvna ind.) | Inbound (Drvna ind. → A. kolodvor) |
+|---|---|---|
+| Korzo | **Korzo A** (`STOP_KORZO_A`) | **Korzo B** (`STOP_KORZO_B`) |
+| Zrinska | **Zrinska B** (`STOP_ZRINSKA_B`) | **Zrinska A** (`STOP_ZRINSKA_A`) |
+| Tržnica | **Tržnica B** (`STOP_TRZNICA_B`) | **Tržnica A** (`STOP_TRZNICA_A`) |
+| Tome Bakača II | **Tome Bakača II A** (`STOP_T_BAKACA_2_A`) | **Tome Bakača II B** (`STOP_T_BAKACA_2_B`) |
+| Tome Bakača III | **Tome Bakača III A** (`STOP_T_BAKACA_3_A`) | **Tome Bakača III B** (`STOP_T_BAKACA_3_B`) |
+
+Tome Bakača I and Marije Jurić Zagorke are single poles (Bakača I is passed once outbound; Zagorke serves both directions from one pole).
+
+> Still placeholder: **Tome Bakača II B** (`STOP_T_BAKACA_2_B`) — inbound pole coordinate not yet provided.
 
 ## Notes
 

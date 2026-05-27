@@ -1,5 +1,29 @@
 # LINIJA 4 — Autobusni kolodvor → Šestinac → Autobusni kolodvor
 
+<!-- COORD-STATUS:START -->
+## Coordinate status — 1/16 stops set
+
+Auto-generated from `gtfs/stops.txt`. ✅ = real coordinate set, ⬜ = still placeholder. Regenerate with `python3 tools/coord_status.py`.
+
+- ✅ Autobusni kolodvor `STOP_BUS_STN`
+- ⬜ Korzo `STOP_KORZO`
+- ⬜ Tržnica `STOP_TRZNICA`
+- ⬜ Zrinska `STOP_ZRINSKA`
+- ⬜ Hebrang `STOP_HEBRANG`
+- ⬜ Osječka I `STOP_OSJECKA_1`
+- ⬜ Osječka II `STOP_OSJECKA_2`
+- ⬜ Osječka III `STOP_OSJECKA_3`
+- ⬜ Osječka IV `STOP_OSJECKA_4`
+- ⬜ Vilme Daus I `STOP_V_DAUS_1`
+- ⬜ Vilme Daus II `STOP_V_DAUS_2`
+- ⬜ Mirka Turčinovića `STOP_M_TURCINOVICA`
+- ⬜ Nas. M. Majstorovića `STOP_MAJSTOROVICA`
+- ⬜ Vida Došena `STOP_V_DOSENA`
+- ⬜ Josipa Bašića `STOP_J_BASICA`
+- ⬜ Branimirova `STOP_BRANIMIROVA`
+
+<!-- COORD-STATUS:END -->
+
 ## Weekday (pon–pet) — A. kolodvor → Šestinac → A. kolodvor
 
 Prometuje: 1 2 3 4 5 (ponedjeljak–petak)

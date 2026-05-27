@@ -1,5 +1,41 @@
 # LINIJA 1 — Autobusni kolodvor → Vinogorje → Autobusni kolodvor
 
+<!-- COORD-STATUS:START -->
+## Coordinate status — 14/28 stops set
+
+Auto-generated from `gtfs/stops.txt`. ✅ = real coordinate set, ⬜ = still placeholder. Regenerate with `python3 tools/coord_status.py`.
+
+- ✅ Autobusni kolodvor `STOP_BUS_STN`
+- ✅ Korzo `STOP_KORZO_A`
+- ✅ Tržnica `STOP_TRZNICA_A`
+- ✅ Zrinska `STOP_ZRINSKA_A`
+- ✅ Gupčeva `STOP_GUPCEVA_A`
+- ✅ 108. brigade ZNG I `STOP_BR108_1`
+- ✅ 108. brigade ZNG II `STOP_BR108_2`
+- ✅ Vinogradska I `STOP_VINOGRADSKA_1`
+- ✅ Vinogradska II `STOP_VINOGRADSKA_2`
+- ✅ Vinogradska III `STOP_VINOGRADSKA_3_A`
+- ⬜ Dravska `STOP_DRAVSKA`
+- ⬜ Dunavska `STOP_DUNAVSKA`
+- ⬜ Vinogorska I `STOP_VINOGORSKA_1`
+- ⬜ Vinogorska II `STOP_VINOGORSKA_2`
+- ⬜ Vinogorska III `STOP_VINOGORSKA_3`
+- ⬜ Kerdeni I `STOP_KERDENI_1`
+- ⬜ Kerdeni II `STOP_KERDENI_2`
+- ⬜ Kerdeni III `STOP_KERDENI_3`
+- ⬜ Trg sv. Antuna `STOP_TRG_SV_ANTUNA`
+- ⬜ Ulica sv. Antuna I `STOP_UL_SV_ANTUNA_1`
+- ⬜ Ulica sv. Antuna II `STOP_UL_SV_ANTUNA_2`
+- ⬜ Kumičićeva I `STOP_KUMICICEVA_1`
+- ⬜ Kumičićeva II `STOP_KUMICICEVA_2`
+- ⬜ Kumičićeva III `STOP_KUMICICEVA_3`
+- ✅ Gupčeva `STOP_GUPCEVA_B`
+- ✅ Zrinska `STOP_ZRINSKA_B`
+- ✅ Tržnica `STOP_TRZNICA_B`
+- ✅ Korzo `STOP_KORZO_B`
+
+<!-- COORD-STATUS:END -->
+
 ## Weekday (pon–pet) — A. kolodvor → Vinogorje → A. kolodvor
 
 Prometuje: 1 2 3 4 5 (ponedjeljak–petak)
@@ -7,10 +43,10 @@ Prometuje: 1 2 3 4 5 (ponedjeljak–petak)
 | Polazak # | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | A. kolodvor | 5:00 | 6:00 | 7:00 | 9:00 | 11:00 | 12:00 | 13:10 | 14:10 | 16:10 | 18:30 | 19:30 | 21:10 |
-| Korzo | - | 6:05 | 7:05 | 9:05 | 11:05 | 12:05 | 13:15 | 14:15 | 16:12 | 18:35 | 19:35 | 21:15 |
-| Tržnica | - | 6:10 | 7:10 | 9:10 | 11:10 | 12:10 | 13:20 | 14:20 | 16:20 | 18:40 | 19:40 | 21:20 |
-| Zrinska | - | 6:12 | 7:12 | 9:12 | 11:12 | 12:12 | 13:22 | 14:22 | 16:22 | 18:42 | 19:42 | 21:22 |
-| Gupčeva | - | 6:14 | 7:14 | 9:14 | 11:14 | 12:14 | 13:24 | 14:24 | 16:24 | 18:44 | 19:44 | 21:24 |
+| Korzo A | - | 6:05 | 7:05 | 9:05 | 11:05 | 12:05 | 13:15 | 14:15 | 16:12 | 18:35 | 19:35 | 21:15 |
+| Tržnica A | - | 6:10 | 7:10 | 9:10 | 11:10 | 12:10 | 13:20 | 14:20 | 16:20 | 18:40 | 19:40 | 21:20 |
+| Zrinska A | - | 6:12 | 7:12 | 9:12 | 11:12 | 12:12 | 13:22 | 14:22 | 16:22 | 18:42 | 19:42 | 21:22 |
+| Gupčeva A | - | 6:14 | 7:14 | 9:14 | 11:14 | 12:14 | 13:24 | 14:24 | 16:24 | 18:44 | 19:44 | 21:24 |
 | 108. brigade ZNG I | - | 6:16 | 7:16 | 9:16 | 11:16 | 12:16 | 13:26 | 14:26 | 16:26 | 18:46 | 19:46 | 21:26 |
 | 108. brigade ZNG II | - | 6:17 | 7:17 | 9:17 | 11:17 | 12:17 | 13:27 | 14:27 | 16:27 | 18:47 | 19:47 | 21:27 |
 | Vinogradska I | 5:18 | 6:18 | 7:18 | 9:18 | 11:18 | 12:18 | 13:28 | 14:28 | 16:28 | 18:48 | 19:48 | 21:28 |
@@ -30,10 +66,10 @@ Prometuje: 1 2 3 4 5 (ponedjeljak–petak)
 | Kumičićeva I | 5:37 | 6:37 | 7:37 | 9:37 | 11:37 | 12:37 | 13:47 | 14:47 | 16:47 | 19:07 | 20:07 | 21:47 |
 | Kumičićeva II | 5:38 | 6:38 | 7:38 | 9:38 | 11:38 | 12:38 | 13:48 | 14:48 | 16:48 | 19:08 | 20:08 | 21:48 |
 | Kumičićeva III | 5:39 | 6:39 | 7:39 | 9:39 | 11:39 | 12:39 | 13:49 | 14:49 | 16:49 | 19:09 | 20:09 | 21:49 |
-| Gupčeva | 5:41 | 6:41 | 7:41 | 9:41 | 11:41 | 12:41 | 13:51 | 14:51 | 16:51 | 19:11 | 20:11 | 21:51 |
-| Zrinska | 5:43 | 6:43 | 7:43 | 9:43 | 11:43 | 12:43 | 13:53 | 14:53 | 16:53 | 19:13 | 20:13 | 21:53 |
-| Tržnica | 5:45 | 6:45 | 7:45 | 9:45 | 11:45 | 12:45 | 13:55 | 14:55 | 16:55 | 19:15 | 20:15 | 21:55 |
-| Korzo | 5:50 | 6:50 | 7:50 | 9:50 | 11:50 | 12:50 | 14:00 | 15:00 | 17:00 | 19:20 | 20:20 | 22:00 |
+| Gupčeva B | 5:41 | 6:41 | 7:41 | 9:41 | 11:41 | 12:41 | 13:51 | 14:51 | 16:51 | 19:11 | 20:11 | 21:51 |
+| Zrinska B | 5:43 | 6:43 | 7:43 | 9:43 | 11:43 | 12:43 | 13:53 | 14:53 | 16:53 | 19:13 | 20:13 | 21:53 |
+| Tržnica B | 5:45 | 6:45 | 7:45 | 9:45 | 11:45 | 12:45 | 13:55 | 14:55 | 16:55 | 19:15 | 20:15 | 21:55 |
+| Korzo B | 5:50 | 6:50 | 7:50 | 9:50 | 11:50 | 12:50 | 14:00 | 15:00 | 17:00 | 19:20 | 20:20 | 22:00 |
 | A. kolodvor | 5:55 | 6:55 | 7:55 | 9:55 | 11:55 | 12:55 | 14:05 | 15:05 | 17:05 | 19:25 | 20:25 | 22:05 |
 
 ## Subota, školski ljetni i zimski praznici (6, LJ, Z)
@@ -43,10 +79,10 @@ Prometuje: 6, LJ, Z
 | Polazak # | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 |
 |---|---|---|---|---|---|---|---|---|---|---|
 | A. kolodvor | 5:00 | 6:30 | 7:30 | 9:00 | 10:00 | 12:00 | 14:10 | 16:10 | 19:10 | 21:10 |
-| Korzo | 5:05 | 6:35 | 7:35 | 9:05 | 10:05 | 12:05 | 14:15 | 16:12 | 19:12 | 21:15 |
-| Tržnica | 5:10 | 6:40 | 7:40 | 9:10 | 10:10 | 12:10 | 14:20 | 16:20 | 19:20 | 21:20 |
-| Zrinska | 5:12 | 6:42 | 7:42 | 9:12 | 10:12 | 12:12 | 14:22 | 16:22 | 19:22 | 21:22 |
-| Gupčeva | 5:14 | 6:44 | 7:44 | 9:14 | 10:14 | 12:14 | 14:24 | 16:24 | 19:24 | 21:24 |
+| Korzo A | 5:05 | 6:35 | 7:35 | 9:05 | 10:05 | 12:05 | 14:15 | 16:12 | 19:12 | 21:15 |
+| Tržnica A | 5:10 | 6:40 | 7:40 | 9:10 | 10:10 | 12:10 | 14:20 | 16:20 | 19:20 | 21:20 |
+| Zrinska A | 5:12 | 6:42 | 7:42 | 9:12 | 10:12 | 12:12 | 14:22 | 16:22 | 19:22 | 21:22 |
+| Gupčeva A | 5:14 | 6:44 | 7:44 | 9:14 | 10:14 | 12:14 | 14:24 | 16:24 | 19:24 | 21:24 |
 | 108. brigade ZNG I | 5:16 | 6:46 | 7:46 | 9:16 | 10:16 | 12:16 | 14:26 | 16:26 | 19:26 | 21:26 |
 | 108. brigade ZNG II | 5:17 | 6:47 | 7:47 | 9:17 | 10:17 | 12:17 | 14:27 | 16:27 | 19:27 | 21:27 |
 | Vinogradska I | 5:18 | 6:48 | 7:48 | 9:18 | 10:18 | 12:18 | 14:28 | 16:28 | 19:28 | 21:28 |
@@ -66,10 +102,10 @@ Prometuje: 6, LJ, Z
 | Kumičićeva I | 5:37 | 7:07 | 8:07 | 9:37 | 10:37 | 12:37 | 14:47 | 16:47 | 19:47 | 21:47 |
 | Kumičićeva II | 5:38 | 7:08 | 8:08 | 9:38 | 10:38 | 12:38 | 14:48 | 16:48 | 19:48 | 21:48 |
 | Kumičićeva III | 5:39 | 7:09 | 8:09 | 9:39 | 10:39 | 12:39 | 14:49 | 16:49 | 19:49 | 21:49 |
-| Gupčeva | 5:41 | 7:11 | 8:11 | 9:41 | 10:41 | 12:41 | 14:51 | 16:51 | 19:51 | 21:51 |
-| Zrinska | 5:43 | 7:13 | 8:13 | 9:43 | 10:43 | 12:43 | 14:53 | 16:53 | 19:53 | 21:53 |
-| Tržnica | 5:45 | 7:15 | 8:15 | 9:45 | 10:45 | 12:45 | 14:55 | 16:55 | 19:55 | 21:55 |
-| Korzo | 5:50 | 7:20 | 8:20 | 9:50 | 10:50 | 12:50 | 15:00 | 17:00 | 20:00 | 22:00 |
+| Gupčeva B | 5:41 | 7:11 | 8:11 | 9:41 | 10:41 | 12:41 | 14:51 | 16:51 | 19:51 | 21:51 |
+| Zrinska B | 5:43 | 7:13 | 8:13 | 9:43 | 10:43 | 12:43 | 14:53 | 16:53 | 19:53 | 21:53 |
+| Tržnica B | 5:45 | 7:15 | 8:15 | 9:45 | 10:45 | 12:45 | 14:55 | 16:55 | 19:55 | 21:55 |
+| Korzo B | 5:50 | 7:20 | 8:20 | 9:50 | 10:50 | 12:50 | 15:00 | 17:00 | 20:00 | 22:00 |
 | A. kolodvor | 5:55 | 7:25 | 8:25 | 9:55 | 10:55 | 12:55 | 15:05 | 17:05 | 20:05 | 22:05 |
 
 ## Nedjelja i praznici (7, P)
@@ -79,10 +115,10 @@ Prometuje: 7, P
 | Polazak # | 1 | 2 | 3 | 4 | 5 |
 |---|---|---|---|---|---|
 | A. kolodvor | 6:00 | 10:00 | 13:10 | 16:10 | 20:00 |
-| Korzo | 6:05 | 10:05 | 13:15 | 16:15 | 20:05 |
-| Tržnica | 6:10 | 10:10 | 13:20 | 16:20 | 20:10 |
-| Zrinska | 6:12 | 10:12 | 13:22 | 16:22 | 20:12 |
-| Gupčeva | 6:14 | 10:14 | 13:24 | 16:24 | 20:14 |
+| Korzo A | 6:05 | 10:05 | 13:15 | 16:15 | 20:05 |
+| Tržnica A | 6:10 | 10:10 | 13:20 | 16:20 | 20:10 |
+| Zrinska A | 6:12 | 10:12 | 13:22 | 16:22 | 20:12 |
+| Gupčeva A | 6:14 | 10:14 | 13:24 | 16:24 | 20:14 |
 | 108. brigade ZNG I | 6:16 | 10:16 | 13:26 | 16:26 | 20:16 |
 | 108. brigade ZNG II | 6:17 | 10:17 | 13:27 | 16:27 | 20:17 |
 | Vinogradska I | 6:18 | 10:18 | 13:28 | 16:28 | 20:18 |
@@ -102,11 +138,28 @@ Prometuje: 7, P
 | Kumičićeva I | 6:36 | 10:36 | 13:46 | 16:46 | 20:36 |
 | Kumičićeva II | 6:37 | 10:37 | 13:47 | 16:47 | 20:37 |
 | Kumičićeva III | 6:38 | 10:38 | 13:48 | 16:48 | 20:38 |
-| Gupčeva | 6:39 | 10:39 | 13:49 | 16:49 | 20:39 |
-| Zrinska | 6:42 | 10:42 | 13:52 | 16:52 | 20:42 |
-| Tržnica | 6:45 | 10:45 | 13:55 | 16:55 | 20:45 |
-| Korzo | 6:50 | 10:50 | 14:00 | 17:00 | 20:50 |
+| Gupčeva B | 6:39 | 10:39 | 13:49 | 16:49 | 20:39 |
+| Zrinska B | 6:42 | 10:42 | 13:52 | 16:52 | 20:42 |
+| Tržnica B | 6:45 | 10:45 | 13:55 | 16:55 | 20:45 |
+| Korzo B | 6:50 | 10:50 | 14:00 | 17:00 | 20:50 |
 | A. kolodvor | 6:55 | 10:55 | 14:05 | 17:05 | 20:55 |
+
+## Stop poles (A vs B)
+
+L1 is a loop that passes **Korzo**, **Tržnica**, **Zrinska** and **Gupčeva** twice — once outbound, once inbound — so each is served at a **different physical pole** depending on direction of travel (same A/B convention as L0). Every other stop is passed only once, so it uses a single pole (no A/B distinction on L1).
+
+| Stop | Outbound leg (A. kolodvor → Vinogorje) | Inbound leg (Vinogorje → A. kolodvor) |
+|---|---|---|
+| Korzo | **Korzo A** (`STOP_KORZO_A`) | **Korzo B** (`STOP_KORZO_B`) |
+| Tržnica | **Tržnica A** (`STOP_TRZNICA_A`) | **Tržnica B** (`STOP_TRZNICA_B`) |
+| Zrinska | **Zrinska A** (`STOP_ZRINSKA_A`) | **Zrinska B** (`STOP_ZRINSKA_B`) |
+| Gupčeva | **Gupčeva A** (`STOP_GUPCEVA_A`) | **Gupčeva B** (`STOP_GUPCEVA_B`) |
+
+Reasoning: the bus travels these stops in one order outbound (matching L0 Smjer A, which uses the A poles) and the reverse inbound (matching L0 Smjer B, B poles). Traveling in opposite directions means standing on opposite sides of the street, i.e. the two different poles.
+
+> **Assumption:** this mirrors L0's A/B labelling and is not yet confirmed against official operator info. Verify pole sides when real stop coordinates are filled in.
+>
+> **GTFS status:** `stop_times.txt` uses the A/B poles for the four twice-passed stops above (outbound = A, inbound = B). `STOP_ZRINSKA_A/_B` and `STOP_GUPCEVA_A/_B` still carry placeholder coordinates — fill in the real per-pole coordinates later. Single-pass stops use single poles: `STOP_BR108_1/_2`, `STOP_VINOGRADSKA_1`, `STOP_VINOGRADSKA_2` have real coordinates; `STOP_VINOGRADSKA_3` uses pole **A** (`STOP_VINOGRADSKA_3_A`, real coords) with an unused `_B` pole defined for the opposite direction. The generic `STOP_KORZO/TRZNICA/ZRINSKA/GUPCEVA` placeholders remain only because L2–L6 still reference them.
 
 ## Notes
 

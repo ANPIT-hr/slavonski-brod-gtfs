@@ -1,5 +1,30 @@
 # LINIJA 3 — Autobusni kolodvor → Brodski Varoš - Bečic → Autobusni kolodvor
 
+<!-- COORD-STATUS:START -->
+## Coordinate status — 1/17 stops set
+
+Auto-generated from `gtfs/stops.txt`. ✅ = real coordinate set, ⬜ = still placeholder. Regenerate with `python3 tools/coord_status.py`.
+
+- ✅ Autobusni kolodvor `STOP_BUS_STN`
+- ⬜ Korzo `STOP_KORZO`
+- ⬜ Tržnica `STOP_TRZNICA`
+- ⬜ Borovska `STOP_BOROVSKA`
+- ⬜ Budainka (samop.) - Zagrebačka I `STOP_BUDAINKA_1`
+- ⬜ Budainka (škola) - Zagrebačka II `STOP_BUDAINKA_2`
+- ⬜ Budainka - Zagrebačka III `STOP_BUDAINKA_3`
+- ⬜ Budainka - Zagrebačka IV `STOP_BUDAINKA_4`
+- ⬜ Sjeverna vezna cesta `STOP_SJEVERNA_VEZNA`
+- ⬜ Kolodvorska I `STOP_KOLODVORSKA_1`
+- ⬜ Kolodvorska II `STOP_KOLODVORSKA_2`
+- ⬜ Marinci `STOP_MARINCI`
+- ⬜ Požeška `STOP_POZESKA`
+- ⬜ Bečic I `STOP_BECIC_1`
+- ⬜ Bečic II `STOP_BECIC_2`
+- ⬜ Marina Getaldića `STOP_M_GETALDICA`
+- ⬜ Jadranska `STOP_JADRANSKA`
+
+<!-- COORD-STATUS:END -->
+
 ## Weekday (pon–pet) — A. kolodvor → Brodski Varoš - Bečic → A. kolodvor
 
 Prometuje: 1 2 3 4 5 (ponedjeljak–petak)

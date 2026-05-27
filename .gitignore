@@ -13,3 +13,11 @@ Thumbs.db
 .idea/
 *.swp
 *~
+tools/
+
+# Local Claude config (not shared)
+.claude/settings.local.json
+
+# Python build junk
+__pycache__/
+*.pyc

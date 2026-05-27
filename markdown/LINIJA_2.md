@@ -1,5 +1,38 @@
 # LINIJA 2 — Autobusni kolodvor → Podvinje → Autobusni kolodvor
 
+<!-- COORD-STATUS:START -->
+## Coordinate status — 6/25 stops set
+
+Auto-generated from `gtfs/stops.txt`. ✅ = real coordinate set, ⬜ = still placeholder. Regenerate with `python3 tools/coord_status.py`.
+
+- ✅ Autobusni kolodvor `STOP_BUS_STN`
+- ⬜ Korzo `STOP_KORZO`
+- ⬜ Tržnica `STOP_TRZNICA`
+- ⬜ Zrinska `STOP_ZRINSKA`
+- ⬜ Gupčeva `STOP_GUPCEVA`
+- ⬜ E. Kumičića I `STOP_E_KUMICICA_1`
+- ⬜ E. Kumičića II `STOP_E_KUMICICA_2`
+- ⬜ Sv. Antuna I `STOP_SV_ANTUNA_1`
+- ⬜ Sv. Antuna II `STOP_SV_ANTUNA_2`
+- ⬜ Trg Sv. Antuna - Podvinje `STOP_TRG_SV_ANTUNA_PODVINJE`
+- ⬜ Kerdeni I `STOP_KERDENI_1`
+- ⬜ Kerdeni II `STOP_KERDENI_2`
+- ⬜ Vinogorska I `STOP_VINOGORSKA_1`
+- ⬜ Vinogorska II `STOP_VINOGORSKA_2`
+- ⬜ Vinogorska III `STOP_VINOGORSKA_3`
+- ⬜ Marinci `STOP_MARINCI`
+- ✅ Vinogradska I `STOP_VINOGRADSKA_1`
+- ✅ Vinogradska II `STOP_VINOGRADSKA_2`
+- ✅ Vinogradska III `STOP_VINOGRADSKA_3_A`
+- ✅ 108. brigade ZNG I `STOP_BR108_1`
+- ✅ 108. brigade ZNG II `STOP_BR108_2`
+- ⬜ Čavlički kr. Br. 6 `STOP_CAVLICKI_6`
+- ⬜ Čavlički - Tomica `STOP_CAVLICKI_TOMICA`
+- ⬜ Čavlički - Okretište `STOP_CAVLICKI_OKRETISTE`
+- ⬜ Čavlički kr. Br. 61 `STOP_CAVLICKI_61`
+
+<!-- COORD-STATUS:END -->
+
 ## Weekday (pon–pet) — A. kolodvor → Podvinje → A. kolodvor
 
 Prometuje: 1 2 3 4 5 (ponedjeljak–petak)

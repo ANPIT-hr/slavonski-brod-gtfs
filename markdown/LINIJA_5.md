@@ -1,5 +1,28 @@
 # LINIJA 5 — Autobusni kolodvor → S. Radića - Jelas → Autobusni kolodvor
 
+<!-- COORD-STATUS:START -->
+## Coordinate status — 2/15 stops set
+
+Auto-generated from `gtfs/stops.txt`. ✅ = real coordinate set, ⬜ = still placeholder. Regenerate with `python3 tools/coord_status.py`.
+
+- ✅ Autobusni kolodvor `STOP_BUS_STN`
+- ⬜ Korzo `STOP_KORZO`
+- ⬜ Tržnica `STOP_TRZNICA`
+- ⬜ Borovska `STOP_BOROVSKA`
+- ✅ Trg. centar Colosseum `STOP_COLOSSEUM`
+- ⬜ Sv. Nikole Tavelića `STOP_SV_N_TAVELICA`
+- ⬜ Pavla Šubića I `STOP_P_SUBICA_1`
+- ⬜ Pavla Šubića II `STOP_P_SUBICA_2`
+- ⬜ 3. gardijske brigade `STOP_GARDIJSKE_3`
+- ⬜ Ivana Velikanovića `STOP_I_VELIKANOVICA`
+- ⬜ Augustina Jarića `STOP_A_JARICA`
+- ⬜ Stjepana Radića I `STOP_S_RADICA_1`
+- ⬜ Stjepana Radića II `STOP_S_RADICA_2`
+- ⬜ Stjepana Radića III `STOP_S_RADICA_3`
+- ⬜ Stjepana Radića IV `STOP_S_RADICA_4`
+
+<!-- COORD-STATUS:END -->
+
 ## Weekday (pon–pet) — A. kolodvor → S. Radića - Jelas → A. kolodvor
 
 Prometuje: 1 2 3 4 5 (ponedjeljak–petak)

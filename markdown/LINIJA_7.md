@@ -1,5 +1,28 @@
 # LINIJA 7 (LINIJA 1+) — Vinogorska (škola) ↔ Košarevac & Kerdeni ↔ Janiševac
 
+<!-- COORD-STATUS:START -->
+## Coordinate status — 0/15 stops set
+
+Auto-generated from `gtfs/stops.txt`. ✅ = real coordinate set, ⬜ = still placeholder. Regenerate with `python3 tools/coord_status.py`.
+
+- ⬜ Vinogorska Š `STOP_VINOGORSKA_S`
+- ⬜ Košarevac I `STOP_KOSAREVAC_1`
+- ⬜ Košarevac II `STOP_KOSAREVAC_2`
+- ⬜ Košarevac III `STOP_KOSAREVAC_3`
+- ⬜ Košarevac IV `STOP_KOSAREVAC_4`
+- ⬜ Pere Pirkera `STOP_PERE_PIRKERA`
+- ⬜ M. Dizdara `STOP_M_DIZDARA`
+- ⬜ Vinogorska `STOP_VINOGORSKA`
+- ⬜ Kerdeni `STOP_KERDENI`
+- ⬜ Janiševac I `STOP_JANISEVAC_1`
+- ⬜ Janiševac II `STOP_JANISEVAC_2`
+- ⬜ Janiševac III `STOP_JANISEVAC_3`
+- ⬜ Janiševac IV `STOP_JANISEVAC_4`
+- ⬜ Janiševac V `STOP_JANISEVAC_5`
+- ⬜ Janiševac VI (Š. Striborova) `STOP_JANISEVAC_6`
+
+<!-- COORD-STATUS:END -->
+
 ## Weekday (pon–pet) — Vinogorska (škola) → Košarevac → Vinogorska
 
 Prometuje: 1 2 3 4 5 (ponedjeljak–petak)
