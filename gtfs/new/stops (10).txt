@@ -99,10 +99,10 @@ STOP_T_BAKACA_1,Tome Bakača I,45.152498,18.025850,single pole
 STOP_T_BAKACA_2_A,Tome Bakača II,45.150346,18.030512,pole A
 STOP_T_BAKACA_2_B,Tome Bakača II,45.150346,18.030512,PLACEHOLDER LOCATION — pole B
 STOP_T_BAKACA_3_A,Tome Bakača III,45.149787,18.033678,pole A
-STOP_T_BAKACA_3_B,Tome Bakača III,45.149679,18.034364,pole B
+STOP_T_BAKACA_3_B,Tome Bakača III,45.149609,18.034446,pole B
 STOP_MJ_ZAGORKE,Marije Jurić Zagorke,45.148583,18.034870,single pole
-STOP_BJELIS,Bjeliš,45.162700,18.012600,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_F_FILIPOVICA_1,Ferde Filipovića I,45.162700,18.013200,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_F_FILIPOVICA_2,Ferde Filipovića II,45.162700,18.013800,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_SV_LOVRE,Sv. Lovre,45.162700,18.014400,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_DRVNA_IND,Drvna industrija,45.162700,18.015000,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_BJELIS,Bjeliš,45.148541,18.041568,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_F_FILIPOVICA_1,Ferde Filipovića I,45.149892,18.045513,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_F_FILIPOVICA_2,Ferde Filipovića II,45.153361,18.043667,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_SV_LOVRE,Sv. Lovre,45.154216,18.045216,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_DRVNA_IND,Drvna industrija,45.154413,18.049679,PLACEHOLDER LOCATION — replace with actual coordinates
