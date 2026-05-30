@@ -47,6 +47,45 @@
     #panel details[open] > summary::after { transform: rotate(180deg); }
     #panel details.sec > *:not(summary) { margin-top: 6px; }
 
+    /* Mode toggle (top-left) + per-mode tool groups */
+    #mode-toggle {
+      position: absolute; top: 12px; left: 12px; z-index: 1100;
+      display: flex; background: #fff; border-radius: 8px; overflow: hidden;
+      box-shadow: 0 1px 6px rgba(0,0,0,.3);
+    }
+    #mode-toggle button {
+      border: none; background: #fff; color: #555; cursor: pointer;
+      font: 600 13px system-ui, sans-serif; padding: 8px 14px;
+    }
+    #mode-toggle button.active { background: #1F4E79; color: #fff; }
+    .leaflet-top.leaflet-left { margin-top: 46px; }   /* clear the mode toggle */
+    #dev-tools, #prod-tools { display: none; }
+    body.mode-dev #dev-tools { display: block; }
+    body.mode-prod #prod-tools { display: block; }
+
+    /* Trip planner + timetable */
+    #panel .field { display: block; font-size: 12px; color: #555; margin: 7px 0; }
+    #panel .field select, #panel .field input { width: 100%; font-size: 13px;
+      padding: 6px; box-sizing: border-box; margin-top: 2px; }
+    .itin { border: 1px solid #ddd; border-radius: 6px; padding: 7px 9px;
+      margin: 7px 0; cursor: pointer; }
+    .itin:hover { background: #f5f8fc; }
+    .itin.sel { border-color: #1F4E79; background: #eef3fa; }
+    .itin .head { display: flex; justify-content: space-between;
+      font-size: 12px; color: #666; margin-bottom: 4px; }
+    .leg { display: flex; align-items: center; gap: 6px; font-size: 12px; padding: 2px 0; }
+    .leg .badge { color: #fff; border-radius: 4px; padding: 1px 6px;
+      font-weight: 700; font-size: 11px; flex: none; }
+    .leg.walk { color: #777; }
+    .tt-wrap { max-height: 42vh; overflow: auto; margin-top: 6px; }
+    .tt-table { border-collapse: collapse; font-size: 11px; }
+    .tt-table th, .tt-table td { border: 1px solid #eee; padding: 2px 5px;
+      text-align: left; white-space: nowrap; }
+    .tt-table th { background: #f5f5f5; position: sticky; top: 0; }
+    .tt-table td:first-child, .tt-table th:first-child {
+      position: sticky; left: 0; background: #fafafa; }
+    .muted { color: #888; font-size: 12px; margin: 6px 0; }
+
     /* Mobile: the panel becomes a slide-up bottom sheet behind a floating button. */
     #panel-toggle, #panel-close { display: none; }
     @media (max-width: 640px) {
@@ -94,19 +133,60 @@
       #panel small { font-size: 12.5px; line-height: 1.4; }
       .leaflet-popup-content button { min-height: 38px; font-size: 13px; }
       .leaflet-control-layers-toggle { width: 44px; height: 44px; }
+      #mode-toggle button { padding: 10px 16px; font-size: 14px; }
     }
   </style>
 </head>
 <body>
   <div id="map"></div>
-  <button id="panel-toggle" aria-label="Prikaži linije i alate">☰ Linije</button>
+  <div id="mode-toggle" role="tablist" aria-label="Način rada">
+    <button id="mode-prod" type="button">Produkcija</button>
+    <button id="mode-dev" type="button">Razvoj</button>
+  </div>
+  <button id="panel-toggle" aria-label="Otvori izbornik">☰ Izbornik</button>
   <div id="panel">
-    <h2>Linije <a href="cesium.html" style="float:right;font-weight:normal;font-size:11px">3D / satelit →</a><button id="panel-close" aria-label="Zatvori">✕</button></h2>
-    <div class="ctl">
-      <button id="all">Sve</button>
-      <button id="none">Nijedna</button>
+    <h2>Gradski prijevoz <a href="cesium.html" style="float:right;font-weight:normal;font-size:11px">3D / satelit →</a><button id="panel-close" aria-label="Zatvori">✕</button></h2>
+
+    <div id="prod-tools">
+      <details class="sec" open>
+        <summary><h3>Planer puta</h3></summary>
+        <label class="field">Od (polazak)
+          <select id="pl-from"></select></label>
+        <label class="field">Do (odredište)
+          <select id="pl-to"></select></label>
+        <div class="row">
+          <button id="pl-gps" title="Polazak s najbliže stanice">📍 Blizu</button>
+          <button id="pl-swap" title="Zamijeni polazak i odredište">⇅</button>
+        </div>
+        <div class="row">
+          <input id="pl-date" type="date" style="flex:1">
+          <input id="pl-time" type="time" style="flex:1">
+        </div>
+        <div class="row"><button id="pl-go" style="flex:1;font-weight:600">Pronađi vožnju</button></div>
+        <div id="pl-results"></div>
+      </details>
+      <hr>
+      <details class="sec">
+        <summary><h3>Vozni red</h3></summary>
+        <label class="field">Linija
+          <select id="tt-line"></select></label>
+        <label class="field">Dan
+          <input id="tt-date" type="date"></label>
+        <div id="tt-results"></div>
+      </details>
+      <hr>
     </div>
-    <div id="lines"></div>
+
+    <details class="sec" open id="lines-sec">
+      <summary><h3>Linije na karti</h3></summary>
+      <div class="ctl">
+        <button id="all">Sve</button>
+        <button id="none">Nijedna</button>
+      </div>
+      <div id="lines"></div>
+    </details>
+
+    <div id="dev-tools">
     <hr>
     <details class="sec" open>
       <summary><h3>Moja lokacija (GPS)</h3></summary>
@@ -168,6 +248,7 @@
       </div>
       <small style="color:#666">Klikni <b>Uredi stajališta</b>, povuci stajališa na pravo mjesto. <b>Izvezi</b> generira novi stops.txt — spremi u gtfs/ pa pokreni build_map.py.</small>
     </details>
+    </div><!-- /#dev-tools -->
   </div>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
           integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
@@ -186,7 +267,7 @@
       const mq = window.matchMedia("(max-width: 640px)");
       function openSheet(on) {
         panel.classList.toggle("open", on);
-        toggle.textContent = on ? "✕ Zatvori" : "☰ Linije";
+        toggle.textContent = on ? "✕ Zatvori" : "☰ Izbornik";
       }
       toggle.addEventListener("click", () => openSheet(!panel.classList.contains("open")));
       closeBtn.addEventListener("click", () => openSheet(false));
@@ -1138,6 +1219,314 @@
       alert("Izvezeno shapes.txt:\n\n" + made.join("\n") +
         "\n\nSpremi u gtfs/ pa pokreni build_map.py.");
     });
+
+    // ======================================================================
+    // MODES — Development (editing) / Production (rider trip planner)
+    // ======================================================================
+    const MODE_KEY = "sb_mode";
+    const modeDevBtn = document.getElementById("mode-dev");
+    const modeProdBtn = document.getElementById("mode-prod");
+
+    function initialMode() {
+      const q = new URLSearchParams(location.search).get("mode");
+      if (q === "dev" || q === "prod") return q;
+      return localStorage.getItem(MODE_KEY) === "dev" ? "dev" : "prod"; // default prod
+    }
+    let appMode = initialMode();
+
+    function applyMode(m) {
+      appMode = m;
+      localStorage.setItem(MODE_KEY, m);
+      document.body.classList.toggle("mode-dev", m === "dev");
+      document.body.classList.toggle("mode-prod", m === "prod");
+      modeDevBtn.classList.toggle("active", m === "dev");
+      modeProdBtn.classList.toggle("active", m === "prod");
+      if (m === "prod") {
+        if (tracing) setTrace(false);
+        if (ovEdit) setEdit(false);
+        if (stopEditMode) setStopEdit(false);
+        ovVisible(false);            // hide the PDF tracing overlay for riders
+        ensureSchedule();
+      } else {
+        clearPlannerHighlight();
+        ovVisible(ovOn.checked);     // restore overlay per its checkbox
+      }
+    }
+    modeDevBtn.addEventListener("click", () => applyMode("dev"));
+    modeProdBtn.addEventListener("click", () => applyMode("prod"));
+
+    // ---- Lazy-load schedule.js the first time Production is opened -----------
+    let SCH = null, schedState = "idle";       // idle | loading | ready | error
+    function ensureSchedule() {
+      if (schedState === "ready" || schedState === "loading") return;
+      schedState = "loading";
+      const pr = document.getElementById("pl-results");
+      if (pr) pr.innerHTML = '<p class="muted">Učitavam vozni red…</p>';
+      const s = document.createElement("script");
+      s.src = "schedule.js";
+      s.onload = () => {
+        SCH = window.GTFS_SCHEDULE; schedState = "ready";
+        buildConnIndex(); initProdUI();
+        if (pr) pr.innerHTML = "";
+      };
+      s.onerror = () => {
+        schedState = "error";
+        if (pr) pr.innerHTML = '<p class="muted">Vozni red se nije učitao (schedule.js).</p>';
+      };
+      document.head.appendChild(s);
+    }
+
+    // ---- Shared helpers ------------------------------------------------------
+    const stopName = (id) => (stopById[id] ? stopById[id].name : id);
+    const routeMeta = (rid) => D.routes[rid] || { color: "#666", short_name: rid };
+    function fmtT(sec) {                          // seconds-after-midnight -> HH:MM
+      const m = ((sec % 86400) + 86400) % 86400;
+      return String(Math.floor(m / 3600)).padStart(2, "0") + ":" +
+             String(Math.floor((m % 3600) / 60)).padStart(2, "0");
+    }
+    function dowMon0(ymd) {                        // "YYYYMMDD" -> 0=Mon … 6=Sun
+      const d = new Date(+ymd.slice(0, 4), +ymd.slice(4, 6) - 1, +ymd.slice(6, 8));
+      return (d.getDay() + 6) % 7;
+    }
+    function servicesForDate(ymd) {
+      const dow = dowMon0(ymd), active = new Set();
+      for (const sid in SCH.calendar) {
+        const c = SCH.calendar[sid];
+        if (c.days[dow] && ymd >= c.start && ymd <= c.end) active.add(sid);
+      }
+      for (const e of SCH.calendar_dates) {       // exceptions override the mask
+        if (e.date === ymd) (e.exception === 1 ? active.add(e.service_id) : active.delete(e.service_id));
+      }
+      return active;
+    }
+    const ymdToInput = (s) => s.slice(0, 4) + "-" + s.slice(4, 6) + "-" + s.slice(6, 8);
+    function feedWindow() {                        // earliest start / latest end
+      let mn = null, mx = null;
+      for (const sid in SCH.calendar) {
+        const c = SCH.calendar[sid];
+        if (!mn || c.start < mn) mn = c.start;
+        if (!mx || c.end > mx) mx = c.end;
+      }
+      return { min: mn, max: mx };
+    }
+    // A/B poles are separate stops sharing a name; a walk between same-named
+    // stops is just crossing the street, so hide it from the itinerary.
+    function displayLegs(it) {
+      const legs = it.legs.filter((l) => !(l.kind === "walk" && stopName(l.from) === stopName(l.to)));
+      return legs.length ? legs : it.legs;
+    }
+
+    // ---- Connection index (built once schedule.js loads) --------------------
+    let ALL_CONNS = [], TRF = {};
+    function buildConnIndex() {
+      ALL_CONNS = [];
+      for (const t of SCH.trips) {
+        for (let i = 0; i < t.stops.length - 1; i++) {
+          const a = t.stops[i], b = t.stops[i + 1];
+          if (a[2] == null || b[1] == null) continue;
+          ALL_CONNS.push({ ds: a[0], dt: a[2], as: b[0], at: b[1], trip: t.id, rid: t.route_id, svc: t.service_id });
+        }
+      }
+      ALL_CONNS.sort((x, y) => x.dt - y.dt);
+      TRF = {};
+      for (const [f, to, w] of SCH.transfers) (TRF[f] = TRF[f] || []).push([to, w]);
+    }
+    const tripById = (id) => SCH.trips.find((t) => t.id === id);
+
+    // ---- Connection Scan Algorithm (earliest arrival + footpaths) -----------
+    function plan(from, to, depSec, ymd) {
+      const active = servicesForDate(ymd);
+      const arr = { [from]: depSec }, inc = {}, boarded = {};
+      (TRF[from] || []).forEach(([t, w]) => {
+        if (depSec + w < (arr[t] ?? Infinity)) { arr[t] = depSec + w; inc[t] = { k: "walk", from, to: t, w, dep: depSec }; }
+      });
+      for (const c of ALL_CONNS) {
+        if (!active.has(c.svc)) continue;
+        const canBoard = boarded[c.trip] || (arr[c.ds] ?? Infinity) <= c.dt;
+        if (!canBoard) continue;
+        boarded[c.trip] = true;
+        if (c.at < (arr[c.as] ?? Infinity)) {
+          arr[c.as] = c.at; inc[c.as] = { k: "ride", c };
+          (TRF[c.as] || []).forEach(([t, w]) => {
+            if (c.at + w < (arr[t] ?? Infinity)) { arr[t] = c.at + w; inc[t] = { k: "walk", from: c.as, to: t, w, dep: c.at }; }
+          });
+        }
+      }
+      if (arr[to] == null) return null;
+      // Reconstruct: walk the predecessor chain back to the origin, then merge
+      // consecutive same-trip ride connections into single legs.
+      const chain = []; let cur = to, guard = 0;
+      while (cur !== from && inc[cur] && guard++ < 100000) {
+        const ic = inc[cur]; chain.push(ic);
+        cur = ic.k === "walk" ? ic.from : ic.c.ds;
+      }
+      if (cur !== from) return null;
+      chain.reverse();
+      const legs = [];
+      for (const ic of chain) {
+        if (ic.k === "walk") { legs.push({ kind: "walk", from: ic.from, to: ic.to, dep: ic.dep, arr: ic.dep + ic.w }); continue; }
+        const c = ic.c, last = legs[legs.length - 1];
+        if (last && last.kind === "ride" && last.trip === c.trip && last.to === c.ds) { last.to = c.as; last.arr = c.at; }
+        else legs.push({ kind: "ride", trip: c.trip, rid: c.rid, from: c.ds, to: c.as, dep: c.dt, arr: c.at });
+      }
+      return { legs, arr: arr[to] };
+    }
+    function planTop(from, to, depSec, ymd, n = 3) {
+      const out = []; let d = depSec, guard = 0;
+      while (out.length < n && guard++ < 25) {
+        const j = plan(from, to, d, ymd);
+        if (!j || !j.legs.length) break;
+        out.push(j);
+        const firstRide = j.legs.find((l) => l.kind === "ride");
+        if (!firstRide) break;
+        d = firstRide.dep + 1;                    // next option departs later
+      }
+      return out;
+    }
+
+    // ---- Production UI: planner + timetable ----------------------------------
+    let prodInited = false;
+    const plLayer = L.layerGroup().addTo(map);
+    function clearPlannerHighlight() { plLayer.clearLayers(); }
+
+    function initProdUI() {
+      if (prodInited) return; prodInited = true;
+      const stopsSorted = [...D.stops].sort((a, b) => a.name.localeCompare(b.name, "hr"));
+      const fromSel = document.getElementById("pl-from"), toSel = document.getElementById("pl-to");
+      stopsSorted.forEach((s) => {
+        const label = s.name + (s.desc ? ` (${s.desc})` : "");
+        fromSel.add(new Option(label, s.id)); toSel.add(new Option(label, s.id));
+      });
+      if (stopsSorted.length > 1) toSel.selectedIndex = 1;
+      const now = new Date();
+      const pad = (n) => String(n).padStart(2, "0");
+      const today = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+      // If "today" is outside the feed's calendar window, default to the nearest
+      // valid day and bound the date pickers to that window.
+      const win = feedWindow(), todayYmd = today.replaceAll("-", "");
+      let defDate = today;
+      if (win.min && todayYmd < win.min) defDate = ymdToInput(win.min);
+      else if (win.max && todayYmd > win.max) defDate = ymdToInput(win.max);
+      ["pl-date", "tt-date"].forEach((id) => {
+        const el = document.getElementById(id);
+        el.value = defDate;
+        if (win.min) el.min = ymdToInput(win.min);
+        if (win.max) el.max = ymdToInput(win.max);
+      });
+      document.getElementById("pl-time").value = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+      const ttLine = document.getElementById("tt-line");
+      layerKeys.forEach(({ key, meta, line }) => {
+        const dir = D.lines.filter((l) => l.route_id === line.route_id).length > 1
+          ? " " + (line.headsign || "smjer " + line.direction_id) : "";
+        ttLine.add(new Option(meta.short_name + dir, key));
+      });
+      document.getElementById("pl-go").onclick = runPlanner;
+      document.getElementById("pl-swap").onclick = () => {
+        const a = fromSel.value; fromSel.value = toSel.value; toSel.value = a;
+      };
+      document.getElementById("pl-gps").onclick = plGps;
+      ttLine.onchange = renderTimetable;
+      document.getElementById("tt-date").onchange = renderTimetable;
+      renderTimetable();
+    }
+
+    function runPlanner() {
+      const from = document.getElementById("pl-from").value, to = document.getElementById("pl-to").value;
+      const box = document.getElementById("pl-results");
+      if (from === to) { box.innerHTML = '<p class="muted">Polazak i odredište su isti.</p>'; clearPlannerHighlight(); return; }
+      const ymd = document.getElementById("pl-date").value.replaceAll("-", "");
+      const [hh, mm] = document.getElementById("pl-time").value.split(":").map(Number);
+      renderItins(planTop(from, to, hh * 3600 + mm * 60, ymd, 3));
+    }
+
+    function plGps() {
+      if (!navigator.geolocation) { alert("Uređaj/preglednik ne podržava geolokaciju."); return; }
+      navigator.geolocation.getCurrentPosition((pos) => {
+        let best = null, bd = Infinity;
+        D.stops.forEach((s) => { const d = haversine(pos.coords.latitude, pos.coords.longitude, s.lat, s.lon); if (d < bd) { bd = d; best = s; } });
+        if (best) document.getElementById("pl-from").value = best.id;
+      }, (err) => alert("GPS nedostupan: " + err.message), { enableHighAccuracy: true, timeout: 15000 });
+    }
+
+    function renderItins(itins) {
+      const box = document.getElementById("pl-results");
+      if (!itins || !itins.length) { box.innerHTML = '<p class="muted">Nema pronađene vožnje za to vrijeme.</p>'; clearPlannerHighlight(); return; }
+      box.innerHTML = "";
+      itins.forEach((it, idx) => {
+        const legs = displayLegs(it);
+        const rides = legs.filter((l) => l.kind === "ride").length;
+        const arrT = legs[legs.length - 1].arr;
+        const dur = Math.round((arrT - legs[0].dep) / 60);
+        const div = document.createElement("div");
+        div.className = "itin" + (idx === 0 ? " sel" : "");
+        const legsHtml = legs.map((l) => {
+          if (l.kind === "walk")
+            return `<div class="leg walk">🚶 ${fmtT(l.dep)} hod ${Math.round((l.arr - l.dep) / 60)} min → ${stopName(l.to)}</div>`;
+          const m = routeMeta(l.rid);
+          return `<div class="leg"><span class="badge" style="background:${m.color}">${m.short_name}</span>${fmtT(l.dep)} ${stopName(l.from)} → ${fmtT(l.arr)} ${stopName(l.to)}</div>`;
+        }).join("");
+        div.innerHTML = `<div class="head"><b>${fmtT(legs[0].dep)} – ${fmtT(arrT)}</b><span>${dur} min · ${Math.max(0, rides - 1)} presj.</span></div>${legsHtml}`;
+        div.addEventListener("click", () => {
+          document.querySelectorAll(".itin").forEach((e) => e.classList.remove("sel"));
+          div.classList.add("sel"); highlightItin(it);
+        });
+        box.appendChild(div);
+      });
+      highlightItin(itins[0]);
+    }
+
+    function highlightItin(it) {
+      clearPlannerHighlight();
+      const bounds = [];
+      displayLegs(it).forEach((l) => {
+        if (l.kind === "ride") {
+          const t = tripById(l.trip); if (!t) return;
+          const ids = t.stops.map((s) => s[0]);
+          let i0 = ids.indexOf(l.from), i1 = ids.indexOf(l.to);
+          if (i0 < 0 || i1 < 0 || i1 < i0) { i0 = 0; i1 = ids.length - 1; }
+          const seg = ids.slice(i0, i1 + 1).map((id) => stopById[id]).filter(Boolean).map((s) => [s.lat, s.lon]);
+          if (seg.length < 2) return;
+          const m = routeMeta(l.rid);
+          L.polyline(seg, { color: "#fff", weight: 11, opacity: 0.6 }).addTo(plLayer);
+          L.polyline(seg, { color: m.color, weight: 6, opacity: 0.95 }).addTo(plLayer);
+          [seg[0], seg[seg.length - 1]].forEach((p) =>
+            L.circleMarker(p, { radius: 5, color: m.color, fillColor: "#fff", fillOpacity: 1, weight: 3 }).addTo(plLayer));
+          seg.forEach((p) => bounds.push(p));
+        } else {
+          const a = stopById[l.from], b = stopById[l.to];
+          if (a && b) {
+            L.polyline([[a.lat, a.lon], [b.lat, b.lon]], { color: "#777", weight: 3, dashArray: "4,6" }).addTo(plLayer);
+            bounds.push([a.lat, a.lon], [b.lat, b.lon]);
+          }
+        }
+      });
+      if (bounds.length) map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
+    }
+
+    function renderTimetable() {
+      const box = document.getElementById("tt-results");
+      const key = document.getElementById("tt-line").value;
+      if (!key) { box.innerHTML = ""; return; }
+      const ymd = document.getElementById("tt-date").value.replaceAll("-", "");
+      const active = servicesForDate(ymd);
+      const [rid, did] = key.split("|");
+      const trips = SCH.trips
+        .filter((t) => t.route_id === rid && t.direction_id === did && active.has(t.service_id))
+        .sort((a, b) => (a.stops[0] ? a.stops[0][2] : 0) - (b.stops[0] ? b.stops[0][2] : 0));
+      if (!trips.length) { box.innerHTML = '<p class="muted">Nema polazaka za taj dan.</p>'; return; }
+      const rep = trips.reduce((m, t) => (t.stops.length > m.stops.length ? t : m), trips[0]);
+      const stopIds = rep.stops.map((s) => s[0]);
+      let html = '<div class="tt-wrap"><table class="tt-table"><thead><tr><th>Stanica</th>' +
+        trips.map((_, i) => `<th>${i + 1}</th>`).join("") + "</tr></thead><tbody>";
+      stopIds.forEach((sid) => {
+        html += `<tr><td>${stopName(sid)}</td>`;
+        trips.forEach((t) => { const st = t.stops.find((s) => s[0] === sid); html += `<td>${st ? fmtT(st[2]) : ""}</td>`; });
+        html += "</tr>";
+      });
+      box.innerHTML = html + "</tbody></table></div>";
+    }
+
+    applyMode(appMode);   // set initial mode (loads schedule if Production)
   </script>
 </body>
 </html>

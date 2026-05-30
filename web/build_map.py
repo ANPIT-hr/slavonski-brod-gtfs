@@ -12,7 +12,9 @@ Re-run whenever stops.txt / stop_times.txt / trips.txt change:
 """
 import csv
 import json
+import math
 import os
+import re
 import sys
 import time
 import urllib.parse
@@ -21,7 +23,13 @@ import urllib.request
 HERE = os.path.dirname(os.path.abspath(__file__))
 GTFS = os.path.join(HERE, "..", "gtfs")
 OUT = os.path.join(HERE, "data.js")
+SCHED_OUT = os.path.join(HERE, "schedule.js")
 OSRM = "https://router.project-osrm.org/route/v1/driving/"
+
+# Footpath transfers for the in-browser trip planner: any two stops within this
+# distance are walkable. Walk time = distance / WALK_SPEED (m/s), floored at 30 s.
+WALK_THRESHOLD_M = 250
+WALK_SPEED = 1.3
 
 # route_color in routes.txt is the same brand blue for every line, which is
 # useless for telling lines apart on a map. Assign a distinct, high-contrast
@@ -64,7 +72,13 @@ def osrm_geometry(coords):
 
 def load_shapes():
     """Read gtfs/shapes.txt if present. Returns {(route_id, direction_id):
-    [[lat, lon], ...]} keyed from shape_id `SHP_<route_id>_<direction_id>`."""
+    {"primary": [[lat, lon], ...], "branches": [[[lat, lon], ...], ...]}}.
+
+    Shape ids look like `SHP_<route_id>_<direction_id>` for the main path; an
+    optional `_B<n>` suffix (e.g. `SHP_L3_0_B2`) marks a branch spur that leaves
+    the main path — a route can have several. Branches must be kept as separate
+    segments: they fan out from a shared junction, so concatenating them into one
+    polyline would draw bogus lines jumping back and forth across that junction."""
     path = os.path.join(GTFS, "shapes.txt")
     if not os.path.exists(path):
         return {}
@@ -75,12 +89,127 @@ def load_shapes():
              float(r["shape_pt_lat"]), float(r["shape_pt_lon"]))
         )
     out = {}
-    for sid, pts in rows.items():
+    for sid in sorted(rows):
         if not sid.startswith("SHP_"):
             continue
-        rid, did = sid[4:].rsplit("_", 1)  # route_id may contain no '_'; dir is last
-        out[(rid, did)] = [[lat, lon] for _, lat, lon in sorted(pts)]
+        body = sid[4:]
+        m = re.search(r"_B\d+$", body)  # branch suffix, e.g. _B2
+        base = body[: m.start()] if m else body
+        rid, did = base.rsplit("_", 1)  # route_id may contain no '_'; dir is last
+        seg = [[lat, lon] for _, lat, lon in sorted(rows[sid])]
+        entry = out.setdefault((rid, did), {"primary": None, "branches": []})
+        if m:
+            entry["branches"].append(seg)
+        else:
+            entry["primary"] = seg
     return out
+
+
+def parse_time(s):
+    """'HH:MM:SS' -> seconds after midnight. GTFS allows >24h for trips that
+    run past midnight (e.g. '25:30:00'), so we don't clamp the hour."""
+    if not s:
+        return None
+    h, m, sec = (s.split(":") + ["0", "0"])[:3]
+    return int(h) * 3600 + int(m) * 60 + int(sec)
+
+
+def haversine_m(a_lat, a_lon, b_lat, b_lon):
+    R = 6371000.0
+    r = math.pi / 180.0
+    dlat = (b_lat - a_lat) * r
+    dlon = (b_lon - a_lon) * r
+    h = (math.sin(dlat / 2) ** 2
+         + math.cos(a_lat * r) * math.cos(b_lat * r) * math.sin(dlon / 2) ** 2)
+    return 2 * R * math.asin(math.sqrt(h))
+
+
+def build_schedule(stops):
+    """Bake everything the in-browser planner/timetable needs into schedule.js:
+    timed trips, the service calendar (+ exceptions), and walkable transfers.
+    Times are seconds-after-midnight ints so past-midnight trips stay ordered."""
+    # trip_id -> meta
+    tmeta = {}
+    for r in read_csv("trips.txt"):
+        tmeta[r["trip_id"]] = {
+            "route_id": r["route_id"],
+            "direction_id": r.get("direction_id", "0"),
+            "service_id": r.get("service_id", ""),
+            "headsign": r.get("trip_headsign", ""),
+        }
+
+    # trip_id -> [(seq, stop_id, arr_sec, dep_sec)]
+    raw = {}
+    for r in read_csv("stop_times.txt"):
+        raw.setdefault(r["trip_id"], []).append((
+            int(r["stop_sequence"]), r["stop_id"],
+            parse_time(r["arrival_time"]), parse_time(r["departure_time"]),
+        ))
+
+    trips_out = []
+    for tid, rows in raw.items():
+        meta = tmeta.get(tid)
+        if not meta:
+            continue
+        rows.sort()
+        stop_list = [[sid, arr, dep] for _, sid, arr, dep in rows]
+        trips_out.append({
+            "id": tid,
+            "route_id": meta["route_id"],
+            "direction_id": meta["direction_id"],
+            "service_id": meta["service_id"],
+            "headsign": meta["headsign"],
+            "stops": stop_list,
+        })
+    trips_out.sort(key=lambda t: (t["route_id"], t["direction_id"],
+                                  t["stops"][0][2] if t["stops"] else 0))
+
+    # Service calendar: weekday mask + validity window.
+    calendar = {}
+    for r in read_csv("calendar.txt"):
+        calendar[r["service_id"]] = {
+            "days": [int(r[d]) for d in ("monday", "tuesday", "wednesday",
+                                         "thursday", "friday", "saturday", "sunday")],
+            "start": r["start_date"],
+            "end": r["end_date"],
+        }
+
+    # Exceptions (add=1 / remove=2 a service on a specific date).
+    cal_dates = []
+    if os.path.exists(os.path.join(GTFS, "calendar_dates.txt")):
+        for r in read_csv("calendar_dates.txt"):
+            cal_dates.append({
+                "service_id": r["service_id"],
+                "date": r["date"],
+                "exception": int(r["exception_type"]),
+            })
+
+    # Walkable footpaths between nearby stops (both directions).
+    slist = list(stops.values())
+    transfers = []
+    for i in range(len(slist)):
+        a = slist[i]
+        for j in range(i + 1, len(slist)):
+            b = slist[j]
+            d = haversine_m(a["lat"], a["lon"], b["lat"], b["lon"])
+            if d <= WALK_THRESHOLD_M:
+                w = max(30, round(d / WALK_SPEED))
+                transfers.append([a["id"], b["id"], w])
+                transfers.append([b["id"], a["id"], w])
+
+    payload = {
+        "trips": trips_out,
+        "calendar": calendar,
+        "calendar_dates": cal_dates,
+        "transfers": transfers,
+    }
+    with open(SCHED_OUT, "w", encoding="utf-8") as f:
+        f.write("// Generated by build_map.py — do not edit by hand.\n")
+        f.write("window.GTFS_SCHEDULE = ")
+        json.dump(payload, f, ensure_ascii=False)
+        f.write(";\n")
+    print(f"Wrote {SCHED_OUT}: {len(trips_out)} trips, "
+          f"{len(calendar)} services, {len(transfers)} transfer links.")
 
 
 def main():
@@ -146,9 +275,16 @@ def main():
         pts = [stops[s] for s in stop_ids if s in stops]
         coords = [(p["lon"], p["lat"]) for p in pts]
         label = f"{rid} dir {did}"
+        branches = []
         if (rid, did) in traced:
-            geom = traced[(rid, did)]
-            print(f"Tracing {label}: {len(geom)} hand-traced points (shapes.txt)")
+            entry = traced[(rid, did)]
+            branches = entry["branches"]
+            geom = entry["primary"]
+            if geom is None:  # only branches traced — promote the first to primary
+                geom = branches.pop(0) if branches else [[p["lat"], p["lon"]] for p in pts]
+            total = len(geom) + sum(len(b) for b in branches)
+            note = f" + {len(branches)} branch(es)" if branches else ""
+            print(f"Tracing {label}: {len(geom)} primary{note} pts, {total} total (shapes.txt)")
         else:
             print(f"Routing {label}: {len(coords)} stops ({tid})")
             geom = osrm_geometry(coords) if len(coords) >= 2 else None
@@ -164,6 +300,7 @@ def main():
                 "headsign": trips[tid]["headsign"],
                 "stop_ids": stop_ids,
                 "geometry": geom,
+                "branches": branches,
                 "snapped": geom is not None and len(geom) > len(pts),
             }
         )
@@ -179,6 +316,8 @@ def main():
         json.dump(payload, f, ensure_ascii=False)
         f.write(";\n")
     print(f"\nWrote {OUT}: {len(stops)} stops, {len(lines)} route shapes.")
+
+    build_schedule(stops)
 
 
 if __name__ == "__main__":
