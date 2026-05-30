@@ -1713,21 +1713,24 @@
         .sort((a, b) => (a.stops[0] ? a.stops[0][2] : 0) - (b.stops[0] ? b.stops[0][2] : 0));
       if (!trips.length) { box.innerHTML = '<p class="muted">Nema polazaka za taj dan.</p>'; return; }
       const rep = trips.reduce((m, t) => (t.stops.length > m.stops.length ? t : m), trips[0]);
+      const repIds = rep.stops.map((s) => s[0]);
+      // Align each trip's times to the representative stop pattern with a forward
+      // cursor. Handles loop terminals (a stop visited twice → two rows) AND
+      // short-turn trips that skip part of the pattern (→ blanks in skipped rows).
+      const cols = trips.map((t) => {
+        const cells = new Array(repIds.length).fill("");
+        let cur = 0;
+        for (const st of t.stops) {
+          let j = cur;
+          while (j < repIds.length && repIds[j] !== st[0]) j++;
+          if (j < repIds.length) { cells[j] = fmtT(st[2]); cur = j + 1; }
+        }
+        return cells;
+      });
       let html = '<div class="tt-wrap"><table class="tt-table"><thead><tr><th>Stanica</th>' +
         trips.map((_, i) => `<th>${i + 1}</th>`).join("") + "</tr></thead><tbody>";
-      // A loop line visits a stop more than once (e.g. the terminal at start AND
-      // end), so match by which occurrence this row is, not the first hit.
-      const seen = {};
-      rep.stops.forEach((rs) => {
-        const sid = rs[0];
-        const occ = seen[sid] || 0; seen[sid] = occ + 1;
-        html += `<tr><td>${stopName(sid)}</td>`;
-        trips.forEach((t) => {
-          let c = -1, time = null;
-          for (const st of t.stops) { if (st[0] === sid && ++c === occ) { time = st[2]; break; } }
-          html += `<td>${time != null ? fmtT(time) : ""}</td>`;
-        });
-        html += "</tr>";
+      repIds.forEach((sid, ri) => {
+        html += `<tr><td>${stopName(sid)}</td>` + cols.map((c) => `<td>${c[ri]}</td>`).join("") + "</tr>";
       });
       box.innerHTML = html + "</tbody></table></div>";
     }
