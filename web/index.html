@@ -148,7 +148,7 @@
     <h2>Gradski prijevoz <a href="cesium.html" style="float:right;font-weight:normal;font-size:11px">3D / satelit →</a><button id="panel-close" aria-label="Zatvori">✕</button></h2>
 
     <div id="prod-tools">
-      <details class="sec" open>
+      <details class="sec" open data-keep-open>
         <summary><h3>Planer puta</h3></summary>
         <label class="field">Od (polazak)
           <select id="pl-from"></select></label>
@@ -278,7 +278,7 @@
         const m = mq.matches;
         if (m === lastMobile) return;
         lastMobile = m;
-        document.querySelectorAll("#panel details.sec").forEach((d) => { d.open = !m; });
+        document.querySelectorAll("#panel details.sec").forEach((d) => { d.open = d.hasAttribute("data-keep-open") ? true : !m; });
         if (!m) openSheet(false); // desktop: panel always shown, drop sheet state
       }
       syncMode();
