@@ -2,7 +2,13 @@
 // Gated by REVIEW_TOKEN (Authorization: Bearer <token>, or ?token=<token>).
 //   GET  ?status=new|applied|rejected   -> { items: [...] }
 //   PATCH { id, status }                -> mark an item applied/rejected
-import { kv } from "@vercel/kv";
+import { Redis } from "@upstash/redis";
+
+// Accepts either KV_REST_API_* (Vercel KV) or UPSTASH_REDIS_REST_* (Upstash).
+const kv = new Redis({
+  url: process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL,
+  token: process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN,
+});
 
 const LIST_KEY = "recommendations";
 const STATUSES = ["new", "applied", "rejected"];

@@ -2,8 +2,15 @@
 // Development mode. Validated + rate-limited, then pushed onto a Vercel KV list
 // for us to review (see /api/recommendations and review.html). Open to anyone;
 // the protection here is the whole gate, so keep it strict.
-import { kv } from "@vercel/kv";
+import { Redis } from "@upstash/redis";
 import crypto from "crypto";
+
+// Works with either the Vercel-KV-style env vars or the Upstash-style ones,
+// so it doesn't matter which marketplace integration provisioned the store.
+const kv = new Redis({
+  url: process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL,
+  token: process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN,
+});
 
 // City bounding box — submitted coords must land inside Slavonski Brod.
 const BBOX = { minLat: 45.10, maxLat: 45.25, minLon: 17.90, maxLon: 18.15 };

@@ -4,6 +4,6 @@
   "type": "module",
   "description": "Serverless functions for the Slavonski Brod transit viewer (the site itself is static).",
   "dependencies": {
-    "@vercel/kv": "^3.0.0"
+    "@upstash/redis": "^1.38.0"
   }
 }

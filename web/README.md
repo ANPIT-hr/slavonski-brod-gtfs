@@ -80,7 +80,7 @@ for the recommendations queue (see below).
 1. Import the GitHub repo at [vercel.com/new](https://vercel.com/new).
 2. In project settings set **Root Directory** to `web` (framework preset
    "Other", no build command). Vercel serves `index.html` at the site root and
-   auto-detects `api/*.js` as serverless functions (installing `@vercel/kv`).
+   auto-detects `api/*.js` as serverless functions (installing `@upstash/redis`).
 3. Deploy. Open the resulting `https://…vercel.app` URL on your phone — HTTPS
    means the GPS feature works.
 
@@ -93,15 +93,19 @@ and `review.html` need the steps below.
 ## Backend — recommendations queue
 
 Development-mode corrections are `POST`ed to `/api/recommend`, validated
-(inside the city bbox) and rate-limited per IP, then stored in **Vercel KV**.
+(inside the city bbox) and rate-limited per IP, then stored in a **serverless
+Redis** (Upstash) via [`@upstash/redis`](https://github.com/upstash/upstash-redis).
 We review them at **`/review.html`**.
 
 **One-time setup in the Vercel dashboard:**
 
-1. **Storage → Create → KV** and connect it to this project. Vercel injects the
-   `KV_REST_API_URL` / `KV_REST_API_TOKEN` env vars that `@vercel/kv` reads.
-   (If you provision via the Upstash marketplace integration instead, make sure
-   those `KV_REST_API_*` vars exist — or the functions can't reach the store.)
+1. **Storage → Marketplace Database Providers → Upstash → Create** a *Serverless
+   Redis* database and connect it to this project. (Pick Upstash, not "Official
+   Redis for Vercel" — Upstash is REST-based and made for serverless functions.)
+   It injects the connection env vars automatically. The code reads either
+   naming — `KV_REST_API_URL`/`KV_REST_API_TOKEN` **or**
+   `UPSTASH_REDIS_REST_URL`/`UPSTASH_REDIS_REST_TOKEN` — so whichever the
+   integration sets will work.
 2. **Settings → Environment Variables** → add **`REVIEW_TOKEN`** = a long random
    secret. This gates `GET/PATCH /api/recommendations` and `review.html`.
    (Optional: `IP_SALT` = any string, to salt the hashed IPs.)
