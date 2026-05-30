@@ -1046,7 +1046,7 @@
     let stopEditMode = false;
     const stopEditBtn = document.getElementById("stop-edit");
 
-    function addStopEditMarker(lat, lon, label, sublabel, onDragEnd, onSetCoord, onDuplicate, onDelete, color) {
+    function addStopEditMarker(lat, lon, label, sublabel, onDragEnd, onSetCoord, onDuplicate, onDelete, color, recType, origLat, origLon) {
       const m = L.marker([lat, lon], {
         draggable: true, zIndexOffset: 500,
         icon: L.divIcon({ className: "",
@@ -1070,7 +1070,9 @@
             `<button id="${uid}set" style="flex:1;font-size:12px">Postavi</button>` +
             (onDuplicate ? `<button id="${uid}dup" style="flex:1;font-size:12px">Dupliciraj</button>` : "") +
             (onDelete    ? `<button id="${uid}del" style="flex:1;font-size:12px;color:#c00">Obriši</button>` : "") +
-            `</div>`
+            `</div>` +
+            `<button id="${uid}rec" style="width:100%;font-size:12px;margin-top:5px;padding:5px;` +
+            `background:#198754;color:#fff;border:none;border-radius:4px;cursor:pointer">✉ Pošalji prijedlog</button>`
           )
           .openOn(map);
         setTimeout(() => {
@@ -1098,10 +1100,43 @@
           if (dupBtn && onDuplicate) dupBtn.onclick = () => { map.closePopup(); onDuplicate(); };
           const delBtn = document.getElementById(uid + "del");
           if (delBtn && onDelete) delBtn.onclick = () => { map.closePopup(); onDelete(); };
+          const recBtn = document.getElementById(uid + "rec");
+          if (recBtn) recBtn.onclick = () => {
+            const ll = m.getLatLng();
+            submitRecommendation({
+              type: recType || "move",
+              stop_id: sublabel, name: label,
+              old: (recType === "move" && origLat != null) ? { lat: origLat, lon: origLon } : null,
+              new: { lat: +ll.lat.toFixed(6), lon: +ll.lng.toFixed(6) },
+              line: traceSel.value,
+            }, recBtn);
+          };
         }, 0);
       });
       m.addTo(stopEditLayer);
       return m;
+    }
+
+    // Send a stop correction to the backend review queue (Development mode).
+    // POSTs to the Vercel function; only works on the deployed HTTPS site. The
+    // local edit is already saved in localStorage, so a failure loses nothing.
+    function submitRecommendation(payload, btn) {
+      const orig = btn ? btn.textContent : null;
+      if (btn) { btn.disabled = true; btn.textContent = "Šaljem…"; }
+      const done = () => { if (btn) { btn.disabled = false; btn.textContent = orig; } };
+      fetch("/api/recommend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...payload, client_ts: Date.now() }),
+      })
+        .then((r) => r.json().then((j) => ({ ok: r.ok, j })))
+        .then(({ ok, j }) => {
+          done();
+          if (ok && j.ok) { alert("Hvala! Prijedlog je zabilježen za pregled."); map.closePopup(); }
+          else alert("Slanje nije uspjelo: " + ((j && j.error) || "greška") +
+            (j && j.error === "rate" ? " — previše prijedloga, pokušaj kasnije." : ""));
+        })
+        .catch(() => { done(); alert("Slanje nije uspjelo (mreža). Lokalna izmjena je sačuvana."); });
     }
 
     function buildStopEditMarkers() {
@@ -1129,7 +1164,7 @@
             buildStopEditMarkers();
           },
           null, // no delete for feed stops
-          "#ff6600"
+          "#ff6600", "move", s.lat, s.lon
         );
       });
 
@@ -1140,7 +1175,7 @@
           (newLat, newLon) => { newStops[idx].stop_lat = newLat; newStops[idx].stop_lon = newLon; saveNewStops(); },
           null, // no further duplication of duplicates
           () => { if (confirm(`Obrisati novo stajalište "${ns.stop_name}" (${ns.stop_id})?`)) { newStops.splice(idx, 1); saveNewStops(); buildStopEditMarkers(); } },
-          "#9933ff"
+          "#9933ff", "new", null, null
         );
       });
     }
