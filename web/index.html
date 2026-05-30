@@ -1677,37 +1677,54 @@
     // The road-following geometry for a ride leg: slice the line's drawn polyline
     // (OSRM-snapped or hand-traced) between the vertices nearest the board and
     // alight stops, so the highlight hugs the street instead of cutting straight.
+    const SNAP_OK_M = 120;   // a stop within this of the line geometry counts as "on" it
     function rideRoadSeg(l) {
       const t = tripById(l.trip);
-      const key = l.rid + "|" + (t ? t.direction_id : "0");
       const a = stopById[l.from], b = stopById[l.to];
-      const straight = (a && b) ? [[a.lat, a.lon], [b.lat, b.lon]] : null;
+      // Exact board/alight positions in the trip — match id AND time so a loop's
+      // repeated stop resolves to the correct visit.
+      let bi = t ? t.stops.findIndex((s) => s[0] === l.from && s[2] === l.dep) : -1;
+      let ai = t ? t.stops.findIndex((s) => s[0] === l.to && s[1] === l.arr) : -1;
+      if (t && bi < 0) bi = t.stops.findIndex((s) => s[0] === l.from);
+      if (t && ai < 0) ai = t.stops.findIndex((s, i) => i > bi && s[0] === l.to);
+      // Always-correct fallback: the polyline through the leg's real stop coords.
+      const stopPath = (t && bi >= 0 && ai > bi)
+        ? t.stops.slice(bi, ai + 1).map((s) => stopById[s[0]]).filter(Boolean).map((s) => [s.lat, s.lon])
+        : (a && b) ? [[a.lat, a.lon], [b.lat, b.lon]] : null;
+      const key = l.rid + "|" + (t ? t.direction_id : "0");
       let geom = null;
       if (linePolylines[key]) {
         const ll = linePolylines[key].getLatLngs();
         if (Array.isArray(ll) && ll.length && ll[0].lat != null) geom = ll.map((p) => [p.lat, p.lng]);
       }
       if (!geom && origGeom[key]) geom = origGeom[key];
-      if (!geom || geom.length < 2 || !t) return straight;
-      const ids = t.stops.map((s) => s[0]);
-      let i0 = ids.indexOf(l.from), i1 = ids.indexOf(l.to);
-      if (i0 < 0 || i1 < 0) return straight;
-      if (i0 > i1) { const tmp = i0; i0 = i1; i1 = tmp; }
-      // Snap each stop between board and alight to a geometry vertex, marching a
-      // cursor forward so repeated/looping geometry resolves to the right pass.
-      let cursor = 0; const idxs = [];
-      for (let k = i0; k <= i1; k++) {
-        const s = stopById[ids[k]]; if (!s) continue;
-        let bi = cursor, bd = Infinity;
-        for (let i = cursor; i < geom.length; i++) {
-          const d = (geom[i][0] - s.lat) ** 2 + (geom[i][1] - s.lon) ** 2;
-          if (d < bd) { bd = d; bi = i; }
+      if (!geom || geom.length < 2 || bi < 0 || ai <= bi) return stopPath;
+      const hav = (p, la, lo) => {
+        const R = 6371000, r = Math.PI / 180, dla = (la - p[0]) * r, dlo = (lo - p[1]) * r;
+        return 2 * R * Math.asin(Math.sqrt(Math.sin(dla / 2) ** 2 + Math.cos(p[0] * r) * Math.cos(la * r) * Math.sin(dlo / 2) ** 2));
+      };
+      const near = (la, lo, from) => {            // nearest vertex ≥ from; bias to the first close pass
+        let bj = from, bd = Infinity;
+        for (let i = from; i < geom.length; i++) {
+          const dx = geom[i][0] - la, dy = geom[i][1] - lo, d = dx * dx + dy * dy;
+          if (d < bd) { bd = d; bj = i; }
+          if (d < (25 / 111000) ** 2) return i;
         }
-        idxs.push(bi); cursor = bi;
+        return bj;
+      };
+      // March a cursor through the trip from the start so the cursor reaches the
+      // right pass; require every leg stop to actually sit on the geometry, else
+      // this leg runs on a branch we don't slice → use the stop-coordinate path.
+      let cur = 0, giB = null, giA = null;
+      for (let k = 0; k <= ai; k++) {
+        const s = stopById[t.stops[k][0]]; if (!s) continue;
+        const j = near(s.lat, s.lon, cur); cur = j;
+        if (k >= bi && hav(geom[j], s.lat, s.lon) > SNAP_OK_M) return stopPath;
+        if (k === bi) giB = j;
+        if (k === ai) giA = j;
       }
-      if (idxs.length < 2) return straight;
-      const seg = geom.slice(idxs[0], idxs[idxs.length - 1] + 1);
-      return seg.length >= 2 ? seg : straight;
+      if (giB == null || giA == null || giA <= giB) return stopPath;
+      return geom.slice(giB, giA + 1);
     }
 
     function highlightItin(it) {
