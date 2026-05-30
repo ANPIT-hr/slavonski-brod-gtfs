@@ -485,7 +485,12 @@
           renderFix(first); first = false;
           geoStatus.textContent = `±${Math.round(lastFix.accuracy)} m`;
         },
-        (err) => { geoStatus.textContent = "greška: " + err.message; },
+        (err) => {
+          stopGeo();   // drop back to idle so the button isn't stuck on "Zaustavi"
+          geoStatus.textContent = err.code === 1
+            ? "lokacija blokirana — dopusti u postavkama preglednika"
+            : "GPS greška: " + err.message;
+        },
         { enableHighAccuracy: true, maximumAge: 2000, timeout: 20000 }
       );
       geoBtn.textContent = "■ Zaustavi GPS";
