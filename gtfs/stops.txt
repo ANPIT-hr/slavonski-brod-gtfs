@@ -1,108 +1,108 @@
 stop_id,stop_name,stop_lat,stop_lon,stop_desc
 STOP_BUS_STN,Autobusni kolodvor,45.162522,18.009741,single pole (terminal)
-STOP_KORZO_A,Korzo,45.155635,18.010880,pole A
-STOP_KORZO_B,Korzo,45.155747,18.011571,pole B
-STOP_TRZNICA_A,Tržnica,45.154282,18.023913,pole A
-STOP_TRZNICA_B,Tržnica,45.154628,18.023838,pole B
+STOP_KORZO_A,Korzo,45.155627,18.011004,pole A
+STOP_KORZO_B,Korzo,45.155669,18.011583,pole B
+STOP_TRZNICA_A,Tržnica,45.154322,18.023881,pole A
+STOP_TRZNICA_B,Tržnica,45.154594,18.023812,pole B
 STOP_BOROVSKA_A,Borovska,45.159809,18.004133,pole A
 STOP_BOROVSKA_B,Borovska,45.160097,18.006425,pole B
-STOP_KORZO,Korzo,45.157300,18.013200,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_TRZNICA,Tržnica,45.157300,18.013800,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_ZRINSKA,Zrinska,45.157300,18.014400,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_ZRINSKA_A,Zrinska,45.15781714655771,18.020880042444407,pole A
-STOP_ZRINSKA_B,Zrinska,45.158028034693544,18.021753101479977,pole B
-STOP_BOROVSKA,Borovska,45.157300,18.015000,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_GUPCEVA,Gupčeva,45.157300,18.015600,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_GUPCEVA_A,Gupčeva,45.16058009635365,18.015981149401703,pole A
-STOP_GUPCEVA_B,Gupčeva,45.16061508511969,18.01577327820051,pole B
-STOP_HEBRANG,Hebrang,45.157300,18.016200,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_COLOSSEUM,Trg. centar Colosseum,45.159460,17.997133,
+STOP_KORZO,Korzo,45.155639,18.010985,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_TRZNICA,Tržnica,45.154588,18.023817,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_ZRINSKA,Zrinska,45.158695,18.023264,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_ZRINSKA_A,Zrinska,45.157827,18.020867,pole A
+STOP_ZRINSKA_B,Zrinska,45.158023,18.021658,pole B
+STOP_BOROVSKA,Borovska,45.160056,18.006554,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_GUPCEVA,Gupčeva,45.160585,18.015926,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_GUPCEVA_A,Gupčeva,45.160589,18.015947,pole A
+STOP_GUPCEVA_B,Gupčeva,45.160314,18.015647,pole B
+STOP_HEBRANG,Hebrang,45.159425,18.029576,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_COLOSSEUM,Trg. centar Colosseum,45.156777,17.995901,
 STOP_BR108_1,108. brigade ZNG I,45.164716,18.014609,single pole
 STOP_BR108_2,108. brigade ZNG II,45.164986,18.010038,single pole
-STOP_VINOGRADSKA_1,Vinogradska I,45.16766571350003,18.003808677751493,single pole
-STOP_VINOGRADSKA_2,Vinogradska II,45.1708352,18.0034201,single pole
-STOP_VINOGRADSKA_3_A,Vinogradska III,45.1747618,18.0019136,pole A
-STOP_VINOGRADSKA_3_B,Vinogradska III,45.1741117,18.0022970,pole B
-STOP_DRAVSKA,Dravska,45.157900,18.015000,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_DUNAVSKA,Dunavska,45.157900,18.015600,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_VINOGORSKA_1,Vinogorska I,45.157900,18.016200,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_VINOGORSKA_2,Vinogorska II,45.157900,18.016800,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_VINOGORSKA_3,Vinogorska III,45.157900,18.017400,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_KERDENI_1,Kerdeni I,45.157900,18.018000,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_KERDENI_2,Kerdeni II,45.158500,18.012600,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_KERDENI_3,Kerdeni III,45.158500,18.013200,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_TRG_SV_ANTUNA,Trg sv. Antuna,45.158500,18.013800,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_UL_SV_ANTUNA_1,Ulica sv. Antuna I,45.158500,18.014400,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_UL_SV_ANTUNA_2,Ulica sv. Antuna II,45.158500,18.015000,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_KUMICICEVA_1,Kumičićeva I,45.158500,18.015600,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_KUMICICEVA_2,Kumičićeva II,45.158500,18.016200,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_KUMICICEVA_3,Kumičićeva III,45.158500,18.016800,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_VINOGORSKA_S,Vinogorska Š,45.158500,18.017400,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_VINOGORSKA,Vinogorska,45.158500,18.018000,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_KERDENI,Kerdeni,45.159100,18.012600,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_KOSAREVAC_1,Košarevac I,45.159100,18.013200,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_KOSAREVAC_2,Košarevac II,45.159100,18.013800,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_KOSAREVAC_3,Košarevac III,45.159100,18.014400,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_KOSAREVAC_4,Košarevac IV,45.159100,18.015000,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_PERE_PIRKERA,Pere Pirkera,45.159100,18.015600,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_M_DIZDARA,M. Dizdara,45.159100,18.016200,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_JANISEVAC_1,Janiševac I,45.159100,18.016800,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_JANISEVAC_2,Janiševac II,45.159100,18.017400,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_JANISEVAC_3,Janiševac III,45.159100,18.018000,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_JANISEVAC_4,Janiševac IV,45.159700,18.012600,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_JANISEVAC_5,Janiševac V,45.159700,18.013200,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_JANISEVAC_6,Janiševac VI (Š. Striborova),45.159700,18.013800,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_E_KUMICICA_1,E. Kumičića I,45.159700,18.014400,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_E_KUMICICA_2,E. Kumičića II,45.159700,18.015000,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_SV_ANTUNA_1,Sv. Antuna I,45.159700,18.015600,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_SV_ANTUNA_2,Sv. Antuna II,45.159700,18.016200,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_TRG_SV_ANTUNA_PODVINJE,Trg Sv. Antuna - Podvinje,45.159700,18.016800,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_MARINCI,Marinci,45.159700,18.017400,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_CAVLICKI_6,Čavlički kr. Br. 6,45.159700,18.018000,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_CAVLICKI_TOMICA,Čavlički - Tomica,45.160300,18.012600,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_CAVLICKI_OKRETISTE,Čavlički - Okretište,45.160300,18.013200,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_CAVLICKI_61,Čavlički kr. Br. 61,45.160300,18.013800,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_BUDAINKA_1,Budainka (samop.) - Zagrebačka I,45.160300,18.014400,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_BUDAINKA_2,Budainka (škola) - Zagrebačka II,45.160300,18.015000,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_BUDAINKA_3,Budainka - Zagrebačka III,45.160300,18.015600,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_BUDAINKA_4,Budainka - Zagrebačka IV,45.160300,18.016200,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_SJEVERNA_VEZNA,Sjeverna vezna cesta,45.160300,18.016800,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_KOLODVORSKA_1,Kolodvorska I,45.160300,18.017400,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_KOLODVORSKA_2,Kolodvorska II,45.160300,18.018000,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_POZESKA,Požeška,45.160900,18.012600,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_BECIC_1,Bečic I,45.160900,18.013200,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_BECIC_2,Bečic II,45.160900,18.013800,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_M_GETALDICA,Marina Getaldića,45.160900,18.014400,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_JADRANSKA,Jadranska,45.160900,18.015000,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_OSJECKA_1,Osječka I,45.160900,18.015600,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_OSJECKA_2,Osječka II,45.160900,18.016200,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_OSJECKA_3,Osječka III,45.160900,18.016800,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_OSJECKA_4,Osječka IV,45.160900,18.017400,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_V_DAUS_1,Vilme Daus I,45.160900,18.018000,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_V_DAUS_2,Vilme Daus II,45.161500,18.012600,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_M_TURCINOVICA,Mirka Turčinovića,45.161500,18.013200,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_MAJSTOROVICA,Nas. M. Majstorovića,45.161500,18.013800,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_V_DOSENA,Vida Došena,45.161500,18.014400,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_J_BASICA,Josipa Bašića,45.161500,18.015000,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_BRANIMIROVA,Branimirova,45.161500,18.015600,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_SV_N_TAVELICA,Sv. Nikole Tavelića,45.161500,18.016200,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_P_SUBICA_1,Pavla Šubića I,45.161500,18.016800,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_P_SUBICA_2,Pavla Šubića II,45.161500,18.017400,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_GARDIJSKE_3,3. gardijske brigade,45.161500,18.018000,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_I_VELIKANOVICA,Ivana Velikanovića,45.162100,18.012600,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_A_JARICA,Augustina Jarića,45.162100,18.013200,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_S_RADICA_1,Stjepana Radića I,45.162100,18.013800,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_S_RADICA_2,Stjepana Radića II,45.162100,18.014400,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_S_RADICA_3,Stjepana Radića III,45.162100,18.015000,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_S_RADICA_4,Stjepana Radića IV,45.162100,18.015600,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_T_BAKACA_1,Tome Bakača I,45.15249845150772,18.025849723065125,single pole
-STOP_T_BAKACA_2_A,Tome Bakača II,45.15034645949816,18.03051230205176,pole A
-STOP_T_BAKACA_2_B,Tome Bakača II,45.15034645949816,18.03051230205176,PLACEHOLDER LOCATION — pole B
-STOP_T_BAKACA_3_A,Tome Bakača III,45.14978712569131,18.03367846926032,pole A
-STOP_T_BAKACA_3_B,Tome Bakača III,45.149678771385666,18.03436442854341,pole B
+STOP_VINOGRADSKA_1,Vinogradska I,45.167746,18.003845,single pole
+STOP_VINOGRADSKA_2,Vinogradska II,45.170835,18.003420,single pole
+STOP_VINOGRADSKA_3_A,Vinogradska III,45.174769,18.001909,pole A
+STOP_VINOGRADSKA_3_B,Vinogradska III,45.174112,18.002297,pole B
+STOP_DRAVSKA,Dravska,45.176826,17.995970,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_DUNAVSKA,Dunavska,45.175448,17.991783,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_VINOGORSKA_1,Vinogorska I,45.181810,17.992237,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_VINOGORSKA_2,Vinogorska II,45.182385,17.996576,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_VINOGORSKA_3,Vinogorska III,45.183924,18.003781,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_KERDENI_1,Kerdeni I,45.185395,18.009371,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_KERDENI_2,Kerdeni II,45.189356,18.018565,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_KERDENI_3,Kerdeni III,45.190264,18.027642,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_TRG_SV_ANTUNA,Trg sv. Antuna,45.190188,18.029530,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_UL_SV_ANTUNA_1,Ulica sv. Antuna I,45.179439,18.020687,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_UL_SV_ANTUNA_2,Ulica sv. Antuna II,45.176154,18.018544,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_KUMICICEVA_1,Kumičićeva I,45.173858,18.018340,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_KUMICICEVA_2,Kumičićeva II,45.168428,18.018318,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_KUMICICEVA_3,Kumičićeva III,45.167195,18.018442,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_VINOGORSKA_S,Vinogorska Š,45.182355,17.996571,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_VINOGORSKA,Vinogorska,45.183889,18.003695,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_KERDENI,Kerdeni,45.185379,18.009413,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_KOSAREVAC_1,Košarevac I,45.194375,17.996571,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_KOSAREVAC_2,Košarevac II,45.184913,17.996721,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_KOSAREVAC_3,Košarevac III,45.184336,17.996936,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_KOSAREVAC_4,Košarevac IV,45.183791,17.997215,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_PERE_PIRKERA,Pere Pirkera,45.189144,18.020260,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_M_DIZDARA,M. Dizdara,45.189636,18.025796,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_JANISEVAC_1,Janiševac I,45.189021,18.030152,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_JANISEVAC_2,Janiševac II,45.188809,18.028178,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_JANISEVAC_3,Janiševac III,45.191470,18.029573,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_JANISEVAC_4,Janiševac IV,45.189959,18.034787,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_JANISEVAC_5,Janiševac V,45.188024,18.033736,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_JANISEVAC_6,Janiševac VI (Š. Striborova),45.190866,18.037019,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_E_KUMICICA_1,E. Kumičića I,45.167192,18.018512,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_E_KUMICICA_2,E. Kumičića II,45.172886,18.019187,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_SV_ANTUNA_1,Sv. Antuna I,45.176146,18.018565,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_SV_ANTUNA_2,Sv. Antuna II,45.180168,18.021398,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_TRG_SV_ANTUNA_PODVINJE,Trg Sv. Antuna - Podvinje,45.190355,18.029573,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_MARINCI,Marinci,45.181772,17.991346,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_CAVLICKI_6,Čavlički kr. Br. 6,45.190453,18.033725,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_CAVLICKI_TOMICA,Čavlički - Tomica,45.193288,18.038414,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_CAVLICKI_OKRETISTE,Čavlički - Okretište,45.194944,18.039293,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_CAVLICKI_61,Čavlički kr. Br. 61,45.194298,18.038789,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_BUDAINKA_1,Budainka (samop.) - Zagrebačka I,45.165532,17.998314,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_BUDAINKA_2,Budainka (škola) - Zagrebačka II,45.167531,17.993637,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_BUDAINKA_3,Budainka - Zagrebačka III,45.171258,17.984659,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_BUDAINKA_4,Budainka - Zagrebačka IV,45.172779,17.981964,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_SJEVERNA_VEZNA,Sjeverna vezna cesta,45.175450,17.979856,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_KOLODVORSKA_1,Kolodvorska I,45.164006,17.999479,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_KOLODVORSKA_2,Kolodvorska II,45.164690,17.994012,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_POZESKA,Požeška,45.180502,17.982774,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_BECIC_1,Bečic I,45.179295,17.973075,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_BECIC_2,Bečic II,45.178236,17.972946,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_M_GETALDICA,Marina Getaldića,45.163622,17.991834,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_JADRANSKA,Jadranska,45.163287,17.996885,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_OSJECKA_1,Osječka I,45.163816,18.035608,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_OSJECKA_2,Osječka II,45.167153,18.039626,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_OSJECKA_3,Osječka III,45.171003,18.043027,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_OSJECKA_4,Osječka IV,45.173922,18.047265,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_V_DAUS_1,Vilme Daus I,45.177170,18.053885,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_V_DAUS_2,Vilme Daus II,45.180687,18.047785,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_M_TURCINOVICA,Mirka Turčinovića,45.179295,18.047962,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_MAJSTOROVICA,Nas. M. Majstorovića,45.174866,18.026891,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_V_DOSENA,Vida Došena,45.172886,18.030024,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_J_BASICA,Josipa Bašića,45.172122,18.039347,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_BRANIMIROVA,Branimirova,45.173650,18.039905,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_SV_N_TAVELICA,Sv. Nikole Tavelića,45.159134,17.996464,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_P_SUBICA_1,Pavla Šubića I,45.155669,17.994297,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_P_SUBICA_2,Pavla Šubića II,45.154087,17.989332,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_GARDIJSKE_3,3. gardijske brigade,45.153323,17.988610,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_I_VELIKANOVICA,Ivana Velikanovića,45.151979,17.987623,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_A_JARICA,Augustina Jarića,45.150796,17.988986,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_S_RADICA_1,Stjepana Radića I,45.149535,17.991353,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_S_RADICA_2,Stjepana Radića II,45.146730,17.986151,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_S_RADICA_3,Stjepana Radića III,45.143614,17.982018,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_S_RADICA_4,Stjepana Radića IV,45.140089,17.978235,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_T_BAKACA_1,Tome Bakača I,45.152498,18.025850,single pole
+STOP_T_BAKACA_2_A,Tome Bakača II,45.150346,18.030512,pole A
+STOP_T_BAKACA_2_B,Tome Bakača II,45.150346,18.030512,PLACEHOLDER LOCATION — pole B
+STOP_T_BAKACA_3_A,Tome Bakača III,45.149787,18.033678,pole A
+STOP_T_BAKACA_3_B,Tome Bakača III,45.149609,18.034446,pole B
 STOP_MJ_ZAGORKE,Marije Jurić Zagorke,45.148583,18.034870,single pole
-STOP_BJELIS,Bjeliš,45.162700,18.012600,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_F_FILIPOVICA_1,Ferde Filipovića I,45.162700,18.013200,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_F_FILIPOVICA_2,Ferde Filipovića II,45.162700,18.013800,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_SV_LOVRE,Sv. Lovre,45.162700,18.014400,PLACEHOLDER LOCATION — replace with actual coordinates
-STOP_DRVNA_IND,Drvna industrija,45.162700,18.015000,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_BJELIS,Bjeliš,45.148541,18.041568,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_F_FILIPOVICA_1,Ferde Filipovića I,45.149892,18.045513,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_F_FILIPOVICA_2,Ferde Filipovića II,45.153361,18.043667,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_SV_LOVRE,Sv. Lovre,45.154216,18.045216,PLACEHOLDER LOCATION — replace with actual coordinates
+STOP_DRVNA_IND,Drvna industrija,45.154413,18.049679,PLACEHOLDER LOCATION — replace with actual coordinates

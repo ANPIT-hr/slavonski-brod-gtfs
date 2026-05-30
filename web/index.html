@@ -35,6 +35,8 @@
     .ov-center { width: 26px; height: 26px; background: #1F4E79; border: 2px solid #fff;
       border-radius: 50%; box-shadow: 0 0 3px rgba(0,0,0,.5); cursor: move;
       color: #fff; font-size: 15px; line-height: 24px; text-align: center; }
+    .me-dot { width: 16px; height: 16px; background: #1a73e8; border: 3px solid #fff;
+      border-radius: 50%; box-shadow: 0 0 5px rgba(0,0,0,.5); }
   </style>
 </head>
 <body>
@@ -46,6 +48,15 @@
       <button id="none">Nijedna</button>
     </div>
     <div id="lines"></div>
+    <hr>
+    <div class="sec">
+      <h3>Moja lokacija (GPS)</h3>
+      <div class="row">
+        <button id="geo-toggle">📍 Moja lokacija</button>
+        <span id="geo-status" style="color:#666"></span>
+      </div>
+      <small style="color:#666">Prati tvoju poziciju na karti. Za upis stajališta na terenu: uđi u <b>Uredi stajališta</b>, klikni stajalište, pa <b>📍 Postavi na GPS lokaciju</b> — dobit će tvoje trenutne koordinate. Treba HTTPS (npr. Vercel) ili lokalni server; ne radi s file://.</small>
+    </div>
     <hr>
     <div class="sec">
       <h3>Podloga (PDF karta)</h3>
@@ -187,6 +198,16 @@
       origGeom[key] = line.geometry;
       line.geometry.forEach((p) => allLatLngs.push(p));
 
+      // Branch spurs (e.g. SHP_L3_0_B2) are separate segments off the main path;
+      // draw each as its own polyline so the full route shows, not just the trunk.
+      (line.branches || []).forEach((seg) => {
+        if (!seg || seg.length < 2) return;
+        L.polyline(seg, { color: meta.color, weight: 4, opacity: 0.85 })
+          .bindTooltip(`${meta.short_name} — ${line.headsign || meta.long_name}`)
+          .addTo(group);
+        seg.forEach((p) => allLatLngs.push(p));
+      });
+
       line.stop_ids.forEach((sid, i) => {
         const s = stopById[sid];
         if (!s) return;
@@ -245,6 +266,83 @@
     }
     document.getElementById("all").onclick = () => setAll(true);
     document.getElementById("none").onclick = () => setAll(false);
+
+    // ---- Geolocation: show my position, place stops in the field -------------
+    // watchPosition tracks the device live (blue dot + accuracy circle); the
+    // first fix recentres the map, later fixes don't, so you can pan while it
+    // follows. The stop-editor popup reuses getCurrentPosition for a fresh,
+    // high-accuracy one-shot read to stamp a stop's coordinates on site.
+    // Browsers only expose geolocation over HTTPS (or localhost) — not file://.
+    let geoWatchId = null, lastFix = null, meMarker = null, meCircle = null;
+    const geoBtn = document.getElementById("geo-toggle");
+    const geoStatus = document.getElementById("geo-status");
+
+    function renderFix(center) {
+      if (!lastFix) return;
+      const ll = [lastFix.lat, lastFix.lon];
+      if (!meMarker) {
+        meMarker = L.marker(ll, {
+          icon: L.divIcon({ className: "", html: '<div class="me-dot"></div>',
+            iconSize: [16, 16], iconAnchor: [8, 8] }),
+          zIndexOffset: 2000, interactive: false,
+        }).addTo(map);
+        meCircle = L.circle(ll, { radius: lastFix.accuracy, color: "#1a73e8",
+          weight: 1, fillColor: "#1a73e8", fillOpacity: 0.12, interactive: false }).addTo(map);
+      } else {
+        meMarker.setLatLng(ll);
+        meCircle.setLatLng(ll).setRadius(lastFix.accuracy);
+      }
+      if (center) map.setView(ll, Math.max(map.getZoom(), 17));
+    }
+
+    function startGeo() {
+      if (!("geolocation" in navigator)) { alert("Uređaj/preglednik ne podržava geolokaciju."); return; }
+      let first = true;
+      geoStatus.textContent = "tražim…";
+      geoWatchId = navigator.geolocation.watchPosition(
+        (pos) => {
+          lastFix = { lat: pos.coords.latitude, lon: pos.coords.longitude,
+            accuracy: pos.coords.accuracy, ts: pos.timestamp };
+          renderFix(first); first = false;
+          geoStatus.textContent = `±${Math.round(lastFix.accuracy)} m`;
+        },
+        (err) => { geoStatus.textContent = "greška: " + err.message; },
+        { enableHighAccuracy: true, maximumAge: 2000, timeout: 20000 }
+      );
+      geoBtn.textContent = "■ Zaustavi GPS";
+      geoBtn.style.background = "#ffe08a";
+    }
+
+    function stopGeo() {
+      if (geoWatchId !== null) navigator.geolocation.clearWatch(geoWatchId);
+      geoWatchId = null;
+      if (meMarker) { map.removeLayer(meMarker); meMarker = null; }
+      if (meCircle) { map.removeLayer(meCircle); meCircle = null; }
+      geoBtn.textContent = "📍 Moja lokacija";
+      geoBtn.style.background = "";
+      geoStatus.textContent = "";
+    }
+
+    geoBtn.addEventListener("click", () => (geoWatchId === null ? startGeo() : stopGeo()));
+
+    // Fresh one-shot high-accuracy fix for stamping a stop's coordinates. Calls
+    // onOk(lat, lon, accuracyMeters); shows a button-busy state on `btn`.
+    function withGpsFix(onOk, btn) {
+      if (!("geolocation" in navigator)) { alert("Uređaj/preglednik ne podržava geolokaciju."); return; }
+      const orig = btn ? btn.textContent : null;
+      if (btn) { btn.disabled = true; btn.textContent = "GPS…"; }
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          if (btn) { btn.disabled = false; btn.textContent = orig; }
+          onOk(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy);
+        },
+        (err) => {
+          if (btn) { btn.disabled = false; btn.textContent = orig; }
+          alert("GPS nedostupan: " + err.message);
+        },
+        { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 }
+      );
+    }
 
     // ---- PDF overlay (georeferencing) ----------------------------------------
     // Self-built so it works without any plugin: a plain image overlay positioned
@@ -796,7 +894,9 @@
           .setContent(
             `<b>${label}</b><br><small style="color:#666">${sublabel || ""}</small><br>` +
             `<input id="${uid}" type="text" value="${curLat}, ${curLon}"` +
-            ` style="width:100%;font-size:12px;margin-top:5px;box-sizing:border-box" placeholder="lat, lon"><br>` +
+            ` style="width:100%;font-size:12px;margin-top:5px;box-sizing:border-box" placeholder="lat, lon">` +
+            `<button id="${uid}gps" style="width:100%;font-size:12px;margin-top:5px;padding:5px;` +
+            `background:#1a73e8;color:#fff;border:none;border-radius:4px;cursor:pointer">📍 Postavi na GPS lokaciju</button>` +
             `<div style="display:flex;gap:4px;margin-top:4px">` +
             `<button id="${uid}set" style="flex:1;font-size:12px">Postavi</button>` +
             (onDuplicate ? `<button id="${uid}dup" style="flex:1;font-size:12px">Dupliciraj</button>` : "") +
@@ -814,6 +914,16 @@
             onSetCoord(parts[0], parts[1]);
             m.setLatLng([parts[0], parts[1]]);
             map.closePopup();
+          };
+          const gpsBtn = document.getElementById(uid + "gps");
+          if (gpsBtn) gpsBtn.onclick = () => {
+            withGpsFix((la, lo, acc) => {
+              if (acc > 30 && !confirm(`GPS točnost je samo ±${Math.round(acc)} m. Svejedno postaviti?`)) return;
+              inp.value = `${la.toFixed(6)}, ${lo.toFixed(6)}`;
+              onSetCoord(la, lo);
+              m.setLatLng([la, lo]);
+              map.closePopup();
+            }, gpsBtn);
           };
           const dupBtn = document.getElementById(uid + "dup");
           if (dupBtn && onDuplicate) dupBtn.onclick = () => { map.closePopup(); onDuplicate(); };
