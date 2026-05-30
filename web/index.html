@@ -1713,12 +1713,20 @@
         .sort((a, b) => (a.stops[0] ? a.stops[0][2] : 0) - (b.stops[0] ? b.stops[0][2] : 0));
       if (!trips.length) { box.innerHTML = '<p class="muted">Nema polazaka za taj dan.</p>'; return; }
       const rep = trips.reduce((m, t) => (t.stops.length > m.stops.length ? t : m), trips[0]);
-      const stopIds = rep.stops.map((s) => s[0]);
       let html = '<div class="tt-wrap"><table class="tt-table"><thead><tr><th>Stanica</th>' +
         trips.map((_, i) => `<th>${i + 1}</th>`).join("") + "</tr></thead><tbody>";
-      stopIds.forEach((sid) => {
+      // A loop line visits a stop more than once (e.g. the terminal at start AND
+      // end), so match by which occurrence this row is, not the first hit.
+      const seen = {};
+      rep.stops.forEach((rs) => {
+        const sid = rs[0];
+        const occ = seen[sid] || 0; seen[sid] = occ + 1;
         html += `<tr><td>${stopName(sid)}</td>`;
-        trips.forEach((t) => { const st = t.stops.find((s) => s[0] === sid); html += `<td>${st ? fmtT(st[2]) : ""}</td>`; });
+        trips.forEach((t) => {
+          let c = -1, time = null;
+          for (const st of t.stops) { if (st[0] === sid && ++c === occ) { time = st[2]; break; } }
+          html += `<td>${time != null ? fmtT(time) : ""}</td>`;
+        });
         html += "</tr>";
       });
       box.innerHTML = html + "</tbody></table></div>";
