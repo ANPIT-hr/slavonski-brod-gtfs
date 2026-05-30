@@ -159,6 +159,12 @@
     try { stopOverrides = JSON.parse(localStorage.getItem(STOP_OVERRIDE_KEY)) || {}; } catch (e) { stopOverrides = {}; }
     function saveStopOverrides() { localStorage.setItem(STOP_OVERRIDE_KEY, JSON.stringify(stopOverrides)); }
 
+    // New stops created by duplicating existing ones.
+    const NEW_STOPS_KEY = "sb_new_stops";
+    let newStops = [];
+    try { newStops = JSON.parse(localStorage.getItem(NEW_STOPS_KEY)) || []; } catch (e) { newStops = []; }
+    function saveNewStops() { localStorage.setItem(NEW_STOPS_KEY, JSON.stringify(newStops)); }
+
     // All line markers per stop so they can be repositioned live when a stop is dragged.
     const stopLineMarkers = {}; // stop_id -> [L.marker, ...]
 
@@ -773,32 +779,90 @@
     let stopEditMode = false;
     const stopEditBtn = document.getElementById("stop-edit");
 
+    function addStopEditMarker(lat, lon, label, sublabel, onDragEnd, onSetCoord, onDuplicate, onDelete, color) {
+      const m = L.marker([lat, lon], {
+        draggable: true, zIndexOffset: 500,
+        icon: L.divIcon({ className: "",
+          html: `<div style="width:14px;height:14px;background:${color};border:2px solid #fff;border-radius:50%;box-shadow:0 0 4px rgba(0,0,0,.6)"></div>`,
+          iconSize: [14, 14], iconAnchor: [7, 7] }),
+      });
+      m.bindTooltip(`<b>${label}</b>${sublabel ? " · " + sublabel : ""}`, { sticky: true });
+      m.on("dragend", (e) => onDragEnd(e.target.getLatLng()));
+      m.on("click", () => {
+        const uid = "se" + Date.now();
+        const curLat = m.getLatLng().lat.toFixed(6), curLon = m.getLatLng().lng.toFixed(6);
+        L.popup({ minWidth: 215 })
+          .setLatLng(m.getLatLng())
+          .setContent(
+            `<b>${label}</b><br><small style="color:#666">${sublabel || ""}</small><br>` +
+            `<input id="${uid}" type="text" value="${curLat}, ${curLon}"` +
+            ` style="width:100%;font-size:12px;margin-top:5px;box-sizing:border-box" placeholder="lat, lon"><br>` +
+            `<div style="display:flex;gap:4px;margin-top:4px">` +
+            `<button id="${uid}set" style="flex:1;font-size:12px">Postavi</button>` +
+            (onDuplicate ? `<button id="${uid}dup" style="flex:1;font-size:12px">Dupliciraj</button>` : "") +
+            (onDelete    ? `<button id="${uid}del" style="flex:1;font-size:12px;color:#c00">Obriši</button>` : "") +
+            `</div>`
+          )
+          .openOn(map);
+        setTimeout(() => {
+          const inp = document.getElementById(uid);
+          if (inp) inp.select();
+          const setBtn = document.getElementById(uid + "set");
+          if (setBtn) setBtn.onclick = () => {
+            const parts = (inp.value || "").trim().split(/[\s,]+/).map(Number).filter(x => !isNaN(x));
+            if (parts.length < 2 || Math.abs(parts[0]) > 90 || Math.abs(parts[1]) > 180) { alert("Format: lat, lon — npr. 45.162522, 18.009741"); return; }
+            onSetCoord(parts[0], parts[1]);
+            m.setLatLng([parts[0], parts[1]]);
+            map.closePopup();
+          };
+          const dupBtn = document.getElementById(uid + "dup");
+          if (dupBtn && onDuplicate) dupBtn.onclick = () => { map.closePopup(); onDuplicate(); };
+          const delBtn = document.getElementById(uid + "del");
+          if (delBtn && onDelete) delBtn.onclick = () => { map.closePopup(); onDelete(); };
+        }, 0);
+      });
+      m.addTo(stopEditLayer);
+      return m;
+    }
+
     function buildStopEditMarkers() {
       stopEditLayer.clearLayers();
       const selLine = D.lines.find((l) => l.route_id + "|" + l.direction_id === traceSel.value);
       const relevantIds = selLine ? new Set(selLine.stop_ids) : new Set();
+
+      // Existing stops from the feed.
       D.stops.forEach((s) => {
         if (!relevantIds.has(s.id)) return;
         const ov = stopOverrides[s.id];
-        const lat = ov ? ov.lat : s.lat;
-        const lon = ov ? ov.lon : s.lon;
-        const m = L.marker([lat, lon], {
-          draggable: true,
-          zIndexOffset: 500,
-          icon: L.divIcon({
-            className: "",
-            html: `<div style="width:14px;height:14px;background:#ff6600;border:2px solid #fff;border-radius:50%;box-shadow:0 0 4px rgba(0,0,0,.6)"></div>`,
-            iconSize: [14, 14], iconAnchor: [7, 7],
-          }),
-        });
-        m.bindTooltip(`<b>${s.name}</b>${s.desc ? " · " + s.desc : ""}`, { sticky: true });
-        m.on("dragend", (e) => {
-          const p = e.target.getLatLng();
-          stopOverrides[s.id] = { lat: p.lat, lon: p.lng };
-          saveStopOverrides();
-          (stopLineMarkers[s.id] || []).forEach((lm) => lm.setLatLng(p));
-        });
-        m.addTo(stopEditLayer);
+        const lat = ov ? ov.lat : s.lat, lon = ov ? ov.lon : s.lon;
+        addStopEditMarker(lat, lon, s.name, s.id,
+          (p) => { stopOverrides[s.id] = { lat: p.lat, lon: p.lng }; saveStopOverrides(); (stopLineMarkers[s.id] || []).forEach(lm => lm.setLatLng(p)); },
+          (newLat, newLon) => { stopOverrides[s.id] = { lat: newLat, lon: newLon }; saveStopOverrides(); (stopLineMarkers[s.id] || []).forEach(lm => lm.setLatLng([newLat, newLon])); },
+          () => {
+            const baseLat = (stopOverrides[s.id] ? stopOverrides[s.id].lat : s.lat);
+            const baseLon = (stopOverrides[s.id] ? stopOverrides[s.id].lon : s.lon);
+            const suggestId = s.id + "_KOP";
+            const newId = prompt("ID novog stajališta:", suggestId);
+            if (!newId) return;
+            if (D.stops.find(x => x.id === newId) || newStops.find(x => x.stop_id === newId)) { alert("Stajalište s tim ID-jem već postoji."); return; }
+            newStops.push({ stop_id: newId, stop_name: s.name, stop_lat: baseLat + 0.0001, stop_lon: baseLon, stop_desc: s.desc || "" });
+            saveNewStops();
+            buildStopEditMarkers();
+          },
+          null, // no delete for feed stops
+          "#ff6600"
+        );
+      });
+
+      // New (duplicated) stops — shown in a different colour.
+      newStops.forEach((ns, idx) => {
+        addStopEditMarker(ns.stop_lat, ns.stop_lon, ns.stop_name, ns.stop_id,
+          (p) => { newStops[idx].stop_lat = p.lat; newStops[idx].stop_lon = p.lng; saveNewStops(); },
+          (newLat, newLon) => { newStops[idx].stop_lat = newLat; newStops[idx].stop_lon = newLon; saveNewStops(); },
+          null, // no further duplication of duplicates
+          () => { if (confirm(`Obrisati novo stajalište "${ns.stop_name}" (${ns.stop_id})?`)) { newStops.splice(idx, 1); saveNewStops(); buildStopEditMarkers(); } },
+          "#9933ff"
+        );
       });
     }
 
@@ -832,8 +896,11 @@
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob); a.download = "stops.txt"; a.click();
       URL.revokeObjectURL(a.href);
+      newStops.forEach((ns) => {
+        rows.push(`${ns.stop_id},${ns.stop_name.replace(/,/g, ";")},${ns.stop_lat.toFixed(6)},${ns.stop_lon.toFixed(6)},${(ns.stop_desc || "").replace(/,/g, ";")}`);
+      });
       const moved = Object.keys(stopOverrides).length;
-      alert(`Izvezeno stops.txt (${moved} stajališ${moved === 1 ? "te" : "ta"} premješteno).\n\nSpremi u gtfs/ pa pokreni build_map.py.`);
+      alert(`Izvezeno stops.txt (${moved} premješteno, ${newStops.length} novo).\n\nSpremi u gtfs/ pa pokreni build_map.py.`);
     });
 
     document.getElementById("stop-reset").addEventListener("click", () => {
