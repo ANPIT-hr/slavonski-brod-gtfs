@@ -1627,22 +1627,55 @@
       highlightItin(itins[0]);
     }
 
+    // The road-following geometry for a ride leg: slice the line's drawn polyline
+    // (OSRM-snapped or hand-traced) between the vertices nearest the board and
+    // alight stops, so the highlight hugs the street instead of cutting straight.
+    function rideRoadSeg(l) {
+      const t = tripById(l.trip);
+      const key = l.rid + "|" + (t ? t.direction_id : "0");
+      const a = stopById[l.from], b = stopById[l.to];
+      const straight = (a && b) ? [[a.lat, a.lon], [b.lat, b.lon]] : null;
+      let geom = null;
+      if (linePolylines[key]) {
+        const ll = linePolylines[key].getLatLngs();
+        if (Array.isArray(ll) && ll.length && ll[0].lat != null) geom = ll.map((p) => [p.lat, p.lng]);
+      }
+      if (!geom && origGeom[key]) geom = origGeom[key];
+      if (!geom || geom.length < 2 || !t) return straight;
+      const ids = t.stops.map((s) => s[0]);
+      let i0 = ids.indexOf(l.from), i1 = ids.indexOf(l.to);
+      if (i0 < 0 || i1 < 0) return straight;
+      if (i0 > i1) { const tmp = i0; i0 = i1; i1 = tmp; }
+      // Snap each stop between board and alight to a geometry vertex, marching a
+      // cursor forward so repeated/looping geometry resolves to the right pass.
+      let cursor = 0; const idxs = [];
+      for (let k = i0; k <= i1; k++) {
+        const s = stopById[ids[k]]; if (!s) continue;
+        let bi = cursor, bd = Infinity;
+        for (let i = cursor; i < geom.length; i++) {
+          const d = (geom[i][0] - s.lat) ** 2 + (geom[i][1] - s.lon) ** 2;
+          if (d < bd) { bd = d; bi = i; }
+        }
+        idxs.push(bi); cursor = bi;
+      }
+      if (idxs.length < 2) return straight;
+      const seg = geom.slice(idxs[0], idxs[idxs.length - 1] + 1);
+      return seg.length >= 2 ? seg : straight;
+    }
+
     function highlightItin(it) {
       clearPlannerHighlight();
       const bounds = [];
       displayLegs(it).forEach((l) => {
         if (l.kind === "ride") {
-          const t = tripById(l.trip); if (!t) return;
-          const ids = t.stops.map((s) => s[0]);
-          let i0 = ids.indexOf(l.from), i1 = ids.indexOf(l.to);
-          if (i0 < 0 || i1 < 0 || i1 < i0) { i0 = 0; i1 = ids.length - 1; }
-          const seg = ids.slice(i0, i1 + 1).map((id) => stopById[id]).filter(Boolean).map((s) => [s.lat, s.lon]);
-          if (seg.length < 2) return;
+          const seg = rideRoadSeg(l);
+          if (!seg || seg.length < 2) return;
           const m = routeMeta(l.rid);
           L.polyline(seg, { color: "#fff", weight: 11, opacity: 0.6 }).addTo(plLayer);
           L.polyline(seg, { color: m.color, weight: 6, opacity: 0.95 }).addTo(plLayer);
-          [seg[0], seg[seg.length - 1]].forEach((p) =>
-            L.circleMarker(p, { radius: 5, color: m.color, fillColor: "#fff", fillOpacity: 1, weight: 3 }).addTo(plLayer));
+          [stopById[l.from], stopById[l.to]].forEach((s) => {
+            if (s) L.circleMarker([s.lat, s.lon], { radius: 5, color: m.color, fillColor: "#fff", fillOpacity: 1, weight: 3 }).addTo(plLayer);
+          });
           seg.forEach((p) => bounds.push(p));
         } else {                              // walk leg (access / egress / transfer)
           let a = null, b = null;
