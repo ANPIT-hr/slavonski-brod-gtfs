@@ -87,6 +87,10 @@
     .tt-table td:first-child, .tt-table th:first-child {
       position: sticky; left: 0; background: #fafafa; }
     .muted { color: #888; font-size: 12px; margin: 6px 0; }
+    .geo-picker { display: flex; flex-direction: column; gap: 4px; margin: 4px 0; }
+    .geo-opt { text-align: left; font-size: 12px; padding: 7px 9px; border: 1px solid #ddd;
+      border-radius: 6px; background: #fff; cursor: pointer; color: #222; }
+    .geo-opt:hover { background: #f5f8fc; border-color: #1F4E79; }
 
     /* Mobile: the panel becomes a slide-up bottom sheet behind a floating button. */
     #panel-toggle, #panel-close { display: none; }
@@ -1516,13 +1520,36 @@
     }
     // Free OSM geocoding (Nominatim), biased to the city bbox. Manual searches
     // only, so the 1 req/s usage policy is easily met.
+    function geoLabel(x) {                       // concise human label from a result
+      const a = x.address || {};
+      const road = a.road || a.pedestrian || a.footway || a.neighbourhood || "";
+      const num = a.house_number ? " " + a.house_number : "";
+      const area = a.suburb || a.city_district || a.village || a.town || a.city || "";
+      const main = (road + num).trim();
+      if (main) return area && area !== main ? `${main}, ${area}` : main;
+      return x.display_name.split(",").slice(0, 2).join(",").trim();
+    }
+    // Geocode against OSM Nominatim. viewbox biases (not bounds) toward the city,
+    // the city is auto-appended for context, and if nothing matches we retry
+    // without a trailing house number (OSM often lacks house-level data here).
     async function geocode(q) {
-      const url = "https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=hr" +
-        "&viewbox=17.90,45.25,18.15,45.10&bounded=1&q=" + encodeURIComponent(q);
-      const r = await fetch(url, { headers: { "Accept": "application/json" } });
-      const j = await r.json();
-      if (!j.length) return null;
-      return { lat: +j[0].lat, lon: +j[0].lon, label: j[0].display_name.split(",").slice(0, 3).join(",") };
+      const base = "https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1" +
+        "&limit=5&countrycodes=hr&viewbox=17.90,45.25,18.15,45.10&q=";
+      const hit = async (query) => {
+        const r = await fetch(base + encodeURIComponent(query), { headers: { "Accept": "application/json" } });
+        return r.ok ? r.json() : [];
+      };
+      const withCity = /brod/i.test(q) ? q : q + ", Slavonski Brod";
+      let res = await hit(withCity);
+      if (!res.length) {
+        const noNum = q.replace(/\s+\d+[a-z]?$/i, "").trim();   // drop trailing house no.
+        if (noNum && noNum !== q) res = await hit(noNum + ", Slavonski Brod");
+      }
+      return res.map((x) => ({ lat: +x.lat, lon: +x.lon, label: geoLabel(x) }));
+    }
+    function chooseGeo(which, h) {
+      setEndpoint(which, { lat: h.lat, lon: h.lon }, h.label);
+      map.setView([h.lat, h.lon], 15);
     }
     async function runSearch(which) {
       const q = document.getElementById("pl-" + which).value.trim();
@@ -1530,10 +1557,22 @@
       const info = document.getElementById("pl-" + which + "-info");
       info.textContent = "tražim adresu…";
       try {
-        const hit = await geocode(q);
-        if (!hit) { info.textContent = "adresa nije pronađena"; return; }
-        setEndpoint(which, { lat: hit.lat, lon: hit.lon }, hit.label);
-        map.setView([hit.lat, hit.lon], 15);
+        const hits = await geocode(q);
+        if (!hits.length) {
+          info.textContent = "ništa nije nađeno — probaj bez kućnog broja ili klikni 📌 na karti";
+          return;
+        }
+        if (hits.length === 1) { chooseGeo(which, hits[0]); return; }
+        info.innerHTML = "";                       // multiple matches → small picker
+        const pick = document.createElement("div");
+        pick.className = "geo-picker";
+        hits.forEach((h) => {
+          const b = document.createElement("button");
+          b.type = "button"; b.className = "geo-opt"; b.textContent = h.label;
+          b.onclick = () => chooseGeo(which, h);
+          pick.appendChild(b);
+        });
+        info.appendChild(pick);
       } catch (e) { info.textContent = "greška pri traženju adrese"; }
     }
     function endpointGps(which) {
