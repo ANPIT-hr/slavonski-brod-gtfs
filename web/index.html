@@ -151,12 +151,22 @@
       <details class="sec" open data-keep-open>
         <summary><h3>Planer puta</h3></summary>
         <label class="field">Od (polazak)
-          <select id="pl-from"></select></label>
+          <input id="pl-from" type="text" autocomplete="off" placeholder="adresa / mjesto — ili klikni kartu"></label>
+        <div class="row pl-ctl">
+          <button id="pl-from-search" title="Traži adresu">🔍</button>
+          <button id="pl-from-pin" title="Klikni točku na karti">📌 Karta</button>
+          <button id="pl-from-gps" title="Moja lokacija">📍 GPS</button>
+        </div>
+        <div id="pl-from-info" class="muted"></div>
         <label class="field">Do (odredište)
-          <select id="pl-to"></select></label>
+          <input id="pl-to" type="text" autocomplete="off" placeholder="adresa / mjesto — ili klikni kartu"></label>
+        <div class="row pl-ctl">
+          <button id="pl-to-search" title="Traži adresu">🔍</button>
+          <button id="pl-to-pin" title="Klikni točku na karti">📌 Karta</button>
+        </div>
+        <div id="pl-to-info" class="muted"></div>
         <div class="row">
-          <button id="pl-gps" title="Polazak s najbliže stanice">📍 Blizu</button>
-          <button id="pl-swap" title="Zamijeni polazak i odredište">⇅</button>
+          <button id="pl-swap" title="Zamijeni polazak i odredište">⇅ Zamijeni</button>
         </div>
         <div class="row">
           <input id="pl-date" type="date" style="flex:1">
@@ -1284,6 +1294,7 @@
         ensureSchedule();
       } else {
         clearPlannerHighlight();
+        setPinMode(null);            // drop any pending pin-on-map state
         ovVisible(ovOn.checked);     // restore overlay per its checkbox
       }
     }
@@ -1347,7 +1358,11 @@
     // A/B poles are separate stops sharing a name; a walk between same-named
     // stops is just crossing the street, so hide it from the itinerary.
     function displayLegs(it) {
-      const legs = it.legs.filter((l) => !(l.kind === "walk" && stopName(l.from) === stopName(l.to)));
+      const legs = it.legs.filter((l) => {
+        if (l.kind !== "walk") return true;
+        if (l.origin || l.dest) return (l.arr - l.dep) >= 60;   // hide trivial access/egress walks
+        return stopName(l.from) !== stopName(l.to);             // hide same-pole transfer walks
+      });
       return legs.length ? legs : it.legs;
     }
 
@@ -1368,13 +1383,30 @@
     }
     const tripById = (id) => SCH.trips.find((t) => t.id === id);
 
-    // ---- Connection Scan Algorithm (earliest arrival + footpaths) -----------
-    function plan(from, to, depSec, ymd) {
+    // Stops walkable from an arbitrary point: those within WALK_MAX (else just
+    // the single nearest), nearest first, capped — returns [[stop_id, walkSec]].
+    const WALK_MAX = 1000;          // metres a rider will walk to/from a stop
+    function stopsNear(pt) {
+      const ranked = D.stops
+        .map((s) => ({ s, d: haversine(pt.lat, pt.lon, s.lat, s.lon) }))
+        .sort((a, b) => a.d - b.d);
+      const within = ranked.filter((x) => x.d <= WALK_MAX);
+      return (within.length ? within : ranked.slice(0, 1))
+        .slice(0, 6).map((x) => [x.s.id, Math.max(30, Math.round(x.d / 1.3))]);
+    }
+
+    // ---- Connection Scan Algorithm between two arbitrary points --------------
+    // Seeds the scan from every stop near the origin (arrival = dep + walk), then
+    // picks the destination stop minimising arrival + walk-to-destination. The
+    // itinerary is wrapped with an origin "access" walk and a destination "egress"
+    // walk so the rider sees the whole door-to-door trip.
+    function planPoints(fromPt, toPt, depSec, ymd) {
       const active = servicesForDate(ymd);
-      const arr = { [from]: depSec }, inc = {}, boarded = {};
-      (TRF[from] || []).forEach(([t, w]) => {
-        if (depSec + w < (arr[t] ?? Infinity)) { arr[t] = depSec + w; inc[t] = { k: "walk", from, to: t, w, dep: depSec }; }
-      });
+      const arr = {}, inc = {}, boarded = {};
+      for (const [sid, w] of stopsNear(fromPt)) {
+        const t = depSec + w;
+        if (t < (arr[sid] ?? Infinity)) { arr[sid] = t; inc[sid] = { k: "origin", w }; }
+      }
       for (const c of ALL_CONNS) {
         if (!active.has(c.svc)) continue;
         const canBoard = boarded[c.trip] || (arr[c.ds] ?? Infinity) <= c.dt;
@@ -1387,30 +1419,36 @@
           });
         }
       }
-      if (arr[to] == null) return null;
-      // Reconstruct: walk the predecessor chain back to the origin, then merge
-      // consecutive same-trip ride connections into single legs.
-      const chain = []; let cur = to, guard = 0;
-      while (cur !== from && inc[cur] && guard++ < 100000) {
-        const ic = inc[cur]; chain.push(ic);
+      let best = null;
+      for (const [sid, w] of stopsNear(toPt)) {
+        if (arr[sid] != null) { const a = arr[sid] + w; if (!best || a < best.a) best = { sid, w, a }; }
+      }
+      if (!best) return null;
+      // Walk the predecessor chain back to an origin stop.
+      const chain = []; let cur = best.sid, guard = 0, originStop = null, originWalk = 0;
+      while (inc[cur] && guard++ < 100000) {
+        const ic = inc[cur];
+        if (ic.k === "origin") { originStop = cur; originWalk = ic.w; break; }
+        chain.push(ic);
         cur = ic.k === "walk" ? ic.from : ic.c.ds;
       }
-      if (cur !== from) return null;
+      if (originStop == null) return null;
       chain.reverse();
-      const legs = [];
+      const legs = [{ kind: "walk", origin: true, to: originStop, dep: depSec, arr: depSec + originWalk }];
       for (const ic of chain) {
         if (ic.k === "walk") { legs.push({ kind: "walk", from: ic.from, to: ic.to, dep: ic.dep, arr: ic.dep + ic.w }); continue; }
         const c = ic.c, last = legs[legs.length - 1];
         if (last && last.kind === "ride" && last.trip === c.trip && last.to === c.ds) { last.to = c.as; last.arr = c.at; }
         else legs.push({ kind: "ride", trip: c.trip, rid: c.rid, from: c.ds, to: c.as, dep: c.dt, arr: c.at });
       }
-      return { legs, arr: arr[to] };
+      legs.push({ kind: "walk", dest: true, from: best.sid, dep: arr[best.sid], arr: best.a });
+      return { legs, arr: best.a };
     }
-    function planTop(from, to, depSec, ymd, n = 3) {
+    function planTopPoints(fromPt, toPt, depSec, ymd, n = 3) {
       const out = []; let d = depSec, guard = 0;
       while (out.length < n && guard++ < 25) {
-        const j = plan(from, to, d, ymd);
-        if (!j || !j.legs.length) break;
+        const j = planPoints(fromPt, toPt, d, ymd);
+        if (!j) break;
         out.push(j);
         const firstRide = j.legs.find((l) => l.kind === "ride");
         if (!firstRide) break;
@@ -1424,15 +1462,88 @@
     const plLayer = L.layerGroup().addTo(map);
     function clearPlannerHighlight() { plLayer.clearLayers(); }
 
+    // From/To endpoints are arbitrary points (typed address, dropped pin, or GPS),
+    // each shown by a draggable A/B marker and snapped to its nearest stop.
+    const ENDP = { from: { pt: null, label: "", marker: null }, to: { pt: null, label: "", marker: null } };
+    let pinMode = null;        // "from" | "to" | null — next map click sets that point
+
+    function pinIcon(color, letter) {
+      return L.divIcon({
+        className: "",
+        html: `<div style="width:22px;height:22px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);` +
+          `background:${color};border:2px solid #fff;box-shadow:0 0 4px rgba(0,0,0,.5)">` +
+          `<span style="transform:rotate(45deg);display:block;text-align:center;line-height:19px;color:#fff;font-weight:700;font-size:11px">${letter}</span></div>`,
+        iconSize: [22, 22], iconAnchor: [11, 22],
+      });
+    }
+    function setEndpoint(which, pt, label) {
+      const e = ENDP[which];
+      e.pt = pt;
+      e.label = label || `${pt.lat.toFixed(5)}, ${pt.lon.toFixed(5)}`;
+      document.getElementById("pl-" + which).value = e.label;
+      const near = stopsNear(pt)[0];
+      document.getElementById("pl-" + which + "-info").textContent = near
+        ? `najbliža: ${stopName(near[0])} · ${Math.round(near[1] * 1.3)} m (${Math.max(1, Math.round(near[1] / 60))} min hoda)`
+        : "nema stanice u blizini";
+      const color = which === "from" ? "#198754" : "#c0392b";
+      if (!e.marker) {
+        e.marker = L.marker([pt.lat, pt.lon], { draggable: true, zIndexOffset: 1500, icon: pinIcon(color, which === "from" ? "A" : "B") }).addTo(map);
+        e.marker.on("dragend", () => { const ll = e.marker.getLatLng(); setEndpoint(which, { lat: ll.lat, lon: ll.lng }, null); });
+      } else e.marker.setLatLng([pt.lat, pt.lon]);
+    }
+    function clearEndpoint(which) {
+      const e = ENDP[which];
+      if (e.marker) { map.removeLayer(e.marker); e.marker = null; }
+      e.pt = null; e.label = "";
+      document.getElementById("pl-" + which).value = "";
+      document.getElementById("pl-" + which + "-info").textContent = "";
+    }
+    function setPinMode(which) {
+      pinMode = pinMode === which ? null : which;
+      map.getContainer().style.cursor = pinMode ? "crosshair" : "";
+      ["from", "to"].forEach((w) => {
+        const b = document.getElementById("pl-" + w + "-pin");
+        if (b) b.style.background = pinMode === w ? "#ffe08a" : "";
+      });
+    }
+    // Free OSM geocoding (Nominatim), biased to the city bbox. Manual searches
+    // only, so the 1 req/s usage policy is easily met.
+    async function geocode(q) {
+      const url = "https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=hr" +
+        "&viewbox=17.90,45.25,18.15,45.10&bounded=1&q=" + encodeURIComponent(q);
+      const r = await fetch(url, { headers: { "Accept": "application/json" } });
+      const j = await r.json();
+      if (!j.length) return null;
+      return { lat: +j[0].lat, lon: +j[0].lon, label: j[0].display_name.split(",").slice(0, 3).join(",") };
+    }
+    async function runSearch(which) {
+      const q = document.getElementById("pl-" + which).value.trim();
+      if (!q) return;
+      const info = document.getElementById("pl-" + which + "-info");
+      info.textContent = "tražim adresu…";
+      try {
+        const hit = await geocode(q);
+        if (!hit) { info.textContent = "adresa nije pronađena"; return; }
+        setEndpoint(which, { lat: hit.lat, lon: hit.lon }, hit.label);
+        map.setView([hit.lat, hit.lon], 15);
+      } catch (e) { info.textContent = "greška pri traženju adrese"; }
+    }
+    function endpointGps(which) {
+      if (!navigator.geolocation) { alert("Uređaj/preglednik ne podržava geolokaciju."); return; }
+      navigator.geolocation.getCurrentPosition((pos) => {
+        const pt = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+        setEndpoint(which, pt, "Moja lokacija");
+        map.setView([pt.lat, pt.lon], 15);
+      }, (err) => alert("GPS nedostupan: " + err.message), { enableHighAccuracy: true, timeout: 15000 });
+    }
+    map.on("click", (e) => {
+      if (!pinMode) return;
+      setEndpoint(pinMode, { lat: e.latlng.lat, lon: e.latlng.lng }, null);
+      setPinMode(null);
+    });
+
     function initProdUI() {
       if (prodInited) return; prodInited = true;
-      const stopsSorted = [...D.stops].sort((a, b) => a.name.localeCompare(b.name, "hr"));
-      const fromSel = document.getElementById("pl-from"), toSel = document.getElementById("pl-to");
-      stopsSorted.forEach((s) => {
-        const label = s.name + (s.desc ? ` (${s.desc})` : "");
-        fromSel.add(new Option(label, s.id)); toSel.add(new Option(label, s.id));
-      });
-      if (stopsSorted.length > 1) toSel.selectedIndex = 1;
       const now = new Date();
       const pad = (n) => String(n).padStart(2, "0");
       const today = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
@@ -1456,31 +1567,33 @@
         ttLine.add(new Option(meta.short_name + dir, key));
       });
       document.getElementById("pl-go").onclick = runPlanner;
+      document.getElementById("pl-from-search").onclick = () => runSearch("from");
+      document.getElementById("pl-to-search").onclick = () => runSearch("to");
+      ["from", "to"].forEach((w) => {
+        document.getElementById("pl-" + w).addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); runSearch(w); } });
+        document.getElementById("pl-" + w + "-pin").onclick = () => setPinMode(w);
+      });
+      document.getElementById("pl-from-gps").onclick = () => endpointGps("from");
       document.getElementById("pl-swap").onclick = () => {
-        const a = fromSel.value; fromSel.value = toSel.value; toSel.value = a;
+        const f = { pt: ENDP.from.pt, label: ENDP.from.label }, t = { pt: ENDP.to.pt, label: ENDP.to.label };
+        clearEndpoint("from"); clearEndpoint("to");
+        if (t.pt) setEndpoint("from", t.pt, t.label);
+        if (f.pt) setEndpoint("to", f.pt, f.label);
       };
-      document.getElementById("pl-gps").onclick = plGps;
       ttLine.onchange = renderTimetable;
       document.getElementById("tt-date").onchange = renderTimetable;
       renderTimetable();
     }
 
     function runPlanner() {
-      const from = document.getElementById("pl-from").value, to = document.getElementById("pl-to").value;
       const box = document.getElementById("pl-results");
-      if (from === to) { box.innerHTML = '<p class="muted">Polazak i odredište su isti.</p>'; clearPlannerHighlight(); return; }
+      if (!ENDP.from.pt || !ENDP.to.pt) {
+        box.innerHTML = '<p class="muted">Odaberi polazak i odredište — upiši adresu, klikni 📌 i točku na karti, ili 📍 GPS.</p>';
+        clearPlannerHighlight(); return;
+      }
       const ymd = document.getElementById("pl-date").value.replaceAll("-", "");
       const [hh, mm] = document.getElementById("pl-time").value.split(":").map(Number);
-      renderItins(planTop(from, to, hh * 3600 + mm * 60, ymd, 3));
-    }
-
-    function plGps() {
-      if (!navigator.geolocation) { alert("Uređaj/preglednik ne podržava geolokaciju."); return; }
-      navigator.geolocation.getCurrentPosition((pos) => {
-        let best = null, bd = Infinity;
-        D.stops.forEach((s) => { const d = haversine(pos.coords.latitude, pos.coords.longitude, s.lat, s.lon); if (d < bd) { bd = d; best = s; } });
-        if (best) document.getElementById("pl-from").value = best.id;
-      }, (err) => alert("GPS nedostupan: " + err.message), { enableHighAccuracy: true, timeout: 15000 });
+      renderItins(planTopPoints(ENDP.from.pt, ENDP.to.pt, hh * 3600 + mm * 60, ymd, 3));
     }
 
     function renderItins(itins) {
@@ -1495,8 +1608,12 @@
         const div = document.createElement("div");
         div.className = "itin" + (idx === 0 ? " sel" : "");
         const legsHtml = legs.map((l) => {
-          if (l.kind === "walk")
-            return `<div class="leg walk">🚶 ${fmtT(l.dep)} hod ${Math.round((l.arr - l.dep) / 60)} min → ${stopName(l.to)}</div>`;
+          if (l.kind === "walk") {
+            const min = Math.max(1, Math.round((l.arr - l.dep) / 60));
+            if (l.origin) return `<div class="leg walk">🚶 ${fmtT(l.dep)} hod ${min} min do ${stopName(l.to)}</div>`;
+            if (l.dest) return `<div class="leg walk">🚶 hod ${min} min do cilja → ${fmtT(l.arr)}</div>`;
+            return `<div class="leg walk">🚶 hod ${min} min → ${stopName(l.to)}</div>`;
+          }
           const m = routeMeta(l.rid);
           return `<div class="leg"><span class="badge" style="background:${m.color}">${m.short_name}</span>${fmtT(l.dep)} ${stopName(l.from)} → ${fmtT(l.arr)} ${stopName(l.to)}</div>`;
         }).join("");
@@ -1527,14 +1644,19 @@
           [seg[0], seg[seg.length - 1]].forEach((p) =>
             L.circleMarker(p, { radius: 5, color: m.color, fillColor: "#fff", fillOpacity: 1, weight: 3 }).addTo(plLayer));
           seg.forEach((p) => bounds.push(p));
-        } else {
-          const a = stopById[l.from], b = stopById[l.to];
+        } else {                              // walk leg (access / egress / transfer)
+          let a = null, b = null;
+          if (l.origin) { if (ENDP.from.pt) a = [ENDP.from.pt.lat, ENDP.from.pt.lon]; const s = stopById[l.to]; if (s) b = [s.lat, s.lon]; }
+          else if (l.dest) { const s = stopById[l.from]; if (s) a = [s.lat, s.lon]; if (ENDP.to.pt) b = [ENDP.to.pt.lat, ENDP.to.pt.lon]; }
+          else { const fa = stopById[l.from], fb = stopById[l.to]; if (fa) a = [fa.lat, fa.lon]; if (fb) b = [fb.lat, fb.lon]; }
           if (a && b) {
-            L.polyline([[a.lat, a.lon], [b.lat, b.lon]], { color: "#777", weight: 3, dashArray: "4,6" }).addTo(plLayer);
-            bounds.push([a.lat, a.lon], [b.lat, b.lon]);
+            L.polyline([a, b], { color: "#777", weight: 3, dashArray: "4,6" }).addTo(plLayer);
+            bounds.push(a, b);
           }
         }
       });
+      if (ENDP.from.pt) bounds.push([ENDP.from.pt.lat, ENDP.from.pt.lon]);
+      if (ENDP.to.pt) bounds.push([ENDP.to.pt.lat, ENDP.to.pt.lon]);
       if (bounds.length) map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
     }
 

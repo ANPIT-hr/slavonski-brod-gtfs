@@ -22,10 +22,13 @@ deep-linked with `?mode=dev` / `?mode=prod`. **Default is Production.** See
 [`PLAN.md`](PLAN.md) for the full design.
 
 - **Produkcija (Production)** — the rider-facing app:
-  - **Planer puta** — pick *from* / *to* stop, a day, and a departure time; get
-    the top-3 itineraries (which line(s), when, transfers) computed **in the
-    browser** by a Connection-Scan algorithm over `schedule.js`. 📍 sets the
-    origin to your nearest stop; tap an itinerary to highlight it on the map.
+  - **Planer puta** — set *from* / *to* as **any point**: type an address
+    (free OSM [Nominatim](https://nominatim.org/) geocoding), click **📌 Karta**
+    then a spot on the map, or **📍 GPS**. Each point snaps to its nearest stop
+    and the walk to/from it is shown as its own leg. Pick a day + departure time
+    and get the top-3 itineraries (which line(s), when, transfers) computed **in
+    the browser** by a Connection-Scan algorithm over `schedule.js`. A/B pins are
+    draggable; tap an itinerary to highlight the whole door-to-door route.
   - **Vozni red** — per-line, per-day timetable (honours holiday exceptions).
   - The PDF tracing overlay and all editing tools are hidden.
 - **Razvoj (Development)** — the field/editing tools (GPS, PDF overlay, route
