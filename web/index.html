@@ -74,7 +74,29 @@
         <button id="trace-clear">Obriši</button>
         <button id="trace-export">Izvezi shapes.txt</button>
       </div>
-      <small style="color:#666">Odaberi liniju, klikni <b>Crtaj</b>, pa klikći po stvarnom putu (preko PDF podloge). Nacrtana ruta zamjenjuje automatsku. ✓ = nacrtano.</small>
+      <div class="row">
+        <select id="trace-copy-dest" style="flex:1;font-size:12px"></select>
+        <button id="trace-copy">Kopiraj put u</button>
+      </div>
+      <div class="row" id="var-nav" style="display:none">
+        <button id="var-prev">◀</button>
+        <span id="var-label" style="flex:1;text-align:center;font-size:12px">Var 1/1</span>
+        <button id="var-next">▶</button>
+        <button id="var-del" title="Obriši ovu varijantu">✕</button>
+      </div>
+      <small style="color:#666">Odaberi liniju, klikni <b>Crtaj</b>, pa klikći po putu. Bijele točke = povuci/klikni (postavi aktivnu točku), desni klik = briši. Sive točke = umetni. Žuta točka = aktivna — klik na karti pri aktivnoj mid-točki stvara novu varijantu umjesto izmjene. ✓ = nacrtano.</small>
+    </div>
+    <hr>
+    <div class="sec">
+      <h3>Stajališta</h3>
+      <div class="row">
+        <button id="stop-edit">✎ Uredi stajališta</button>
+      </div>
+      <div class="row">
+        <button id="stop-export">Izvezi stops.txt</button>
+        <button id="stop-reset">Resetiraj sve</button>
+      </div>
+      <small style="color:#666">Klikni <b>Uredi stajališta</b>, povuci stajališa na pravo mjesto. <b>Izvezi</b> generira novi stops.txt — spremi u gtfs/ pa pokreni build_map.py.</small>
     </div>
   </div>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
@@ -106,12 +128,40 @@
       { position: "topleft" }
     ).addTo(map);
 
+    // Left-click is reserved for object interaction (waypoints, stops, map clicks).
+    // Middle-click drag pans the map.
+    map.dragging.disable();
+    {
+      let _pan = false, _px = 0, _py = 0;
+      const _el = map.getContainer();
+      _el.addEventListener("mousedown", (e) => {
+        if (e.button !== 1) return;
+        e.preventDefault(); // suppress browser autoscroll on middle-click
+        _pan = true; _px = e.clientX; _py = e.clientY;
+      });
+      document.addEventListener("mousemove", (e) => {
+        if (!_pan) return;
+        map.panBy([_px - e.clientX, _py - e.clientY], { animate: false });
+        _px = e.clientX; _py = e.clientY;
+      });
+      document.addEventListener("mouseup", (e) => { if (e.button === 1) _pan = false; });
+    }
+
     // Stops shared across lines: one marker per physical stop.
     const stopById = {};
     D.stops.forEach((s) => (stopById[s.id] = s));
 
     // Each route gets its own layer group (line + its stop markers) so it can be
     // toggled independently. Markers are de-duplicated per layer.
+    // Stop position overrides (dragged by the user), keyed by stop_id.
+    const STOP_OVERRIDE_KEY = "sb_stop_overrides";
+    let stopOverrides = {};
+    try { stopOverrides = JSON.parse(localStorage.getItem(STOP_OVERRIDE_KEY)) || {}; } catch (e) { stopOverrides = {}; }
+    function saveStopOverrides() { localStorage.setItem(STOP_OVERRIDE_KEY, JSON.stringify(stopOverrides)); }
+
+    // All line markers per stop so they can be repositioned live when a stop is dragged.
+    const stopLineMarkers = {}; // stop_id -> [L.marker, ...]
+
     const groups = {};       // key -> L.layerGroup
     const layerKeys = [];    // ordered for the panel
     const allLatLngs = [];
@@ -134,7 +184,10 @@
       line.stop_ids.forEach((sid, i) => {
         const s = stopById[sid];
         if (!s) return;
-        const marker = L.marker([s.lat, s.lon], {
+        const ov = stopOverrides[sid];
+        const lat = ov ? ov.lat : s.lat;
+        const lon = ov ? ov.lon : s.lon;
+        const marker = L.marker([lat, lon], {
           icon: L.divIcon({
             className: "",
             html: `<div class="stop-dot" style="width:11px;height:11px;border-color:${meta.color}"></div>`,
@@ -144,9 +197,11 @@
         marker.bindPopup(
           `<b>${s.name}</b><br>${s.desc || ""}` +
           `<br><small>${meta.short_name} · stajalište ${i + 1}/${line.stop_ids.length}</small>` +
-          `<br><small>${s.lat.toFixed(6)}, ${s.lon.toFixed(6)}</small>`
+          `<br><small>${lat.toFixed(6)}, ${lon.toFixed(6)}</small>`
         );
         marker.addTo(group);
+        stopLineMarkers[sid] = stopLineMarkers[sid] || [];
+        stopLineMarkers[sid].push(marker);
       });
 
       groups[key] = group;
@@ -401,19 +456,44 @@
     try { shapes = JSON.parse(localStorage.getItem(TRACE_KEY)) || {}; } catch (e) { shapes = {}; }
     function saveShapes() { localStorage.setItem(TRACE_KEY, JSON.stringify(shapes)); }
 
-    // Show any already-traced shapes in place of their OSRM line.
-    function redrawLine(key) {
-      const pts = shapes[key];
-      if (linePolylines[key])
-        linePolylines[key].setLatLngs(pts && pts.length >= 2 ? pts : origGeom[key]);
+    // Each route can have multiple shape variants (branches).
+    // Primary: shapes["L1|0"]; branches: shapes["L1|0:1"], shapes["L1|0:2"], …
+    function getVariantKeys(routeKey) {
+      const keys = [routeKey];
+      for (let i = 1; shapes[routeKey + ":" + i] !== undefined; i++) keys.push(routeKey + ":" + i);
+      return keys;
     }
-    for (const key in shapes) redrawLine(key);
+
+    const branchPolylines = {}; // shapeKey -> L.polyline (variants 1+)
+    function ensureBranchPolyline(routeKey, shapeKey) {
+      if (branchPolylines[shapeKey]) return;
+      const meta = D.routes[routeKey.split("|")[0]] || { color: "#666" };
+      const pl = L.polyline([], { color: meta.color, weight: 3, opacity: 0.55, dashArray: "8,5" });
+      if (groups[routeKey]) pl.addTo(groups[routeKey]);
+      branchPolylines[shapeKey] = pl;
+    }
+
+    function redrawLine(routeKey) {
+      const primaryPts = shapes[routeKey];
+      if (linePolylines[routeKey])
+        linePolylines[routeKey].setLatLngs(primaryPts && primaryPts.length >= 2 ? primaryPts : origGeom[routeKey]);
+      const varKeys = getVariantKeys(routeKey);
+      for (let i = 1; i < varKeys.length; i++) {
+        const sk = varKeys[i];
+        ensureBranchPolyline(routeKey, sk);
+        branchPolylines[sk].setLatLngs((shapes[sk] || []).length >= 2 ? shapes[sk] : []);
+      }
+    }
+
+    // Initialize: redraw every route that has stored shapes (primary or branch).
+    { const rks = new Set(Object.keys(shapes).map(k => k.includes(":") ? k.slice(0, k.lastIndexOf(":")) : k));
+      rks.forEach(rk => redrawLine(rk)); }
 
     const traceSel = document.getElementById("trace-route");
     function optLabel(key, meta, line) {
       const dir = D.lines.filter((l) => l.route_id === line.route_id).length > 1
         ? " " + (line.headsign || "smjer " + line.direction_id) : "";
-      const done = shapes[key] && shapes[key].length >= 2 ? " ✓" : "";
+      const done = getVariantKeys(key).some(sk => shapes[sk] && shapes[sk].length >= 2) ? " ✓" : "";
       return meta.short_name + dir + done;
     }
     layerKeys.forEach(({ key, meta, line }) => {
@@ -426,24 +506,140 @@
         const lk = layerKeys.find((x) => x.key === opt.value);
         if (lk) opt.textContent = optLabel(lk.key, lk.meta, lk.line);
       });
+      [...traceCopyDest.options].forEach((opt) => {
+        const lk = layerKeys.find((x) => x.key === opt.value);
+        if (lk) opt.textContent = optLabel(lk.key, lk.meta, lk.line);
+      });
     }
 
-    let tracing = false, traceKey = null;
+    // Populate copy-destination dropdown (same routes, different select element).
+    const traceCopyDest = document.getElementById("trace-copy-dest");
+    layerKeys.forEach(({ key, meta, line }) => {
+      const opt = document.createElement("option");
+      opt.value = key; opt.textContent = optLabel(key, meta, line);
+      traceCopyDest.appendChild(opt);
+    });
+    document.getElementById("trace-copy").addEventListener("click", () => {
+      const srcKey = traceSel.value;
+      const dstKey = traceCopyDest.value;
+      if (srcKey === dstKey) { alert("Izvorišna i odredišna linija su iste."); return; }
+      if (!shapes[srcKey] || shapes[srcKey].length < 2) {
+        alert("Izvorišna linija nema nacrtan put."); return;
+      }
+      const dstLabel = [...traceCopyDest.options].find(o => o.value === dstKey)?.textContent || dstKey;
+      const srcLabel = [...traceSel.options].find(o => o.value === srcKey)?.textContent || srcKey;
+      if (!confirm(`Kopirati put iz "${srcLabel}" u "${dstLabel}"?\n(Postojeći put odredišne linije bit će zamijenjen.)`)) return;
+      shapes[dstKey] = shapes[srcKey].map(p => [...p]);
+      saveShapes(); redrawLine(dstKey); refreshOptions();
+    });
+
+    let tracing = false, traceKey = null, traceActiveIdx = -1;
+    let traceShapeKey = null, traceVariantIdx = 0;
     const vtxLayer = L.layerGroup().addTo(map);
     const traceBtn = document.getElementById("trace-draw");
-    function addVtx(p) {
-      L.circleMarker(p, { radius: 4, color: "#000", weight: 1,
-        fillColor: "#fff", fillOpacity: 1 }).addTo(vtxLayer);
+    const varNav = document.getElementById("var-nav");
+    const varLabel = document.getElementById("var-label");
+
+    function updateVarNav() {
+      if (!tracing || !traceKey) { varNav.style.display = "none"; return; }
+      const n = getVariantKeys(traceKey).length;
+      varNav.style.display = n > 1 ? "" : "none";
+      varLabel.textContent = `Var ${traceVariantIdx + 1}/${n}`;
     }
+
     function renderVtx() {
       vtxLayer.clearLayers();
-      if (tracing) (shapes[traceKey] || []).forEach(addVtx);
+      if (!tracing || !traceShapeKey) return;
+      const pts = shapes[traceShapeKey] || [];
+
+      // Midpoint handles (drawn first so waypoints sit on top)
+      for (let i = 0; i < pts.length - 1; i++) {
+        const mid = [(pts[i][0] + pts[i + 1][0]) / 2, (pts[i][1] + pts[i + 1][1]) / 2];
+        const insertIdx = i + 1; // capture for closure
+        const mMid = L.marker(mid, {
+          draggable: true,
+          zIndexOffset: 550,
+          icon: L.divIcon({
+            className: "",
+            html: `<div style="width:8px;height:8px;background:#ccc;border:1.5px solid #555;border-radius:50%;opacity:0.85"></div>`,
+            iconSize: [8, 8], iconAnchor: [4, 4],
+          }),
+        });
+        // Click (no drag): insert at midpoint, stop map-click from also firing.
+        mMid.on("click", (e) => {
+          e.originalEvent.stopPropagation();
+          shapes[traceShapeKey].splice(insertIdx, 0, [mid[0], mid[1]]);
+          saveShapes(); redrawLine(traceKey); renderVtx(); refreshOptions();
+        });
+        let midInserted = false;
+        mMid.on("dragstart", () => { midInserted = false; });
+        mMid.on("drag", (e) => {
+          const p = e.target.getLatLng();
+          if (!midInserted) { shapes[traceShapeKey].splice(insertIdx, 0, [p.lat, p.lng]); midInserted = true; }
+          else { shapes[traceShapeKey][insertIdx] = [p.lat, p.lng]; }
+          redrawLine(traceKey);
+        });
+        mMid.on("dragend", () => { saveShapes(); renderVtx(); refreshOptions(); });
+        mMid.addTo(vtxLayer);
+      }
+
+      // Waypoint markers (on top)
+      const activeI = traceActiveIdx >= 0 && traceActiveIdx < pts.length
+        ? traceActiveIdx : pts.length - 1;
+      pts.forEach((p, i) => {
+        const isActive = i === activeI;
+        const m = L.marker(p, {
+          draggable: true,
+          zIndexOffset: 600,
+          icon: L.divIcon({
+            className: "",
+            html: `<div style="width:${isActive ? 13 : 10}px;height:${isActive ? 13 : 10}px;background:${isActive ? "#ffe08a" : "#fff"};border:2px solid #222;border-radius:50%"></div>`,
+            iconSize: isActive ? [13, 13] : [10, 10],
+            iconAnchor: isActive ? [6, 6] : [5, 5],
+          }),
+        });
+        // Click sets this waypoint as the active drawing anchor.
+        m.on("click", (e) => {
+          e.originalEvent.stopPropagation();
+          traceActiveIdx = i;
+          renderVtx();
+        });
+        m.on("drag", (e) => {
+          const pos = e.target.getLatLng();
+          shapes[traceShapeKey][i] = [pos.lat, pos.lng];
+          redrawLine(traceKey);
+          const snap = findSnap(pos, i);
+          if (snap) {
+            if (!snapRing) snapRing = L.circleMarker(snap, { radius: 9, color: "#00cc44", weight: 2.5, fillOpacity: 0, interactive: false }).addTo(map);
+            else snapRing.setLatLng(snap);
+          } else {
+            if (snapRing) { map.removeLayer(snapRing); snapRing = null; }
+          }
+        });
+        m.on("dragend", () => {
+          if (snapRing) { map.removeLayer(snapRing); snapRing = null; }
+          const snap = findSnap(m.getLatLng(), i);
+          if (snap) { shapes[traceShapeKey][i] = [snap[0], snap[1]]; m.setLatLng(snap); }
+          saveShapes(); renderVtx(); refreshOptions();
+        });
+        m.on("contextmenu", (e) => {
+          e.originalEvent.stopPropagation();
+          shapes[traceShapeKey].splice(i, 1);
+          if (traceActiveIdx >= shapes[traceShapeKey].length) traceActiveIdx = shapes[traceShapeKey].length - 1;
+          saveShapes(); redrawLine(traceKey); renderVtx(); refreshOptions();
+        });
+        m.addTo(vtxLayer);
+      });
     }
+
     function setTrace(on) {
       tracing = on;
       traceKey = traceSel.value;
+      traceShapeKey = traceKey;
+      traceVariantIdx = 0;
+      traceActiveIdx = -1;
       if (on) {
-        setEdit(false);                                 // leave overlay edit mode
+        setEdit(false);
         map.getContainer().style.cursor = "crosshair";
         traceBtn.textContent = "✓ Završi crtanje";
         traceBtn.style.background = "#ffe08a";
@@ -452,34 +648,220 @@
         traceBtn.textContent = "✎ Crtaj rutu";
         traceBtn.style.background = "";
       }
+      updateVarNav();
       renderVtx();
     }
     traceBtn.addEventListener("click", () => setTrace(!tracing));
-    traceSel.addEventListener("change", () => { if (tracing) setTrace(true); });
+    traceSel.addEventListener("change", () => {
+      traceActiveIdx = -1;
+      if (tracing) setTrace(true);
+      if (stopEditMode) buildStopEditMarkers();
+    });
 
+    // Snap: if cursor is within SNAP_PX pixels of any waypoint on the current shape,
+    // the new point lands exactly on that waypoint (great for closing loops).
+    const SNAP_PX = 15;
+    // excludeIdx: skip the waypoint being dragged so it doesn't snap to itself.
+    function findSnap(latlng, excludeIdx = -1) {
+      const clickPx = map.latLngToContainerPoint(latlng);
+      const pts = shapes[traceShapeKey] || [];
+      let best = null, bestD = SNAP_PX;
+      pts.forEach((p, j) => {
+        if (j === excludeIdx) return;
+        const px = map.latLngToContainerPoint(L.latLng(p[0], p[1]));
+        const d = Math.hypot(clickPx.x - px.x, clickPx.y - px.y);
+        if (d < bestD) { bestD = d; best = p; }
+      });
+      return best;
+    }
+
+    // Green ring — shown only while dragging a waypoint near a snap target.
+    let snapRing = null;
+
+    // Map click: active mid-point → branch into new variant; active at end → append.
+    // Clicked position snaps to a nearby waypoint if within SNAP_PX pixels.
     map.on("click", (e) => {
       if (!tracing) return;
-      (shapes[traceKey] = shapes[traceKey] || []).push([e.latlng.lat, e.latlng.lng]);
-      saveShapes(); redrawLine(traceKey); addVtx([e.latlng.lat, e.latlng.lng]); refreshOptions();
+      const snap = findSnap(e.latlng);
+      const coord = snap ? snap : [e.latlng.lat, e.latlng.lng];
+      const pts = shapes[traceShapeKey] = shapes[traceShapeKey] || [];
+      const activeI = traceActiveIdx >= 0 && traceActiveIdx < pts.length
+        ? traceActiveIdx : pts.length - 1;
+
+      if (activeI < pts.length - 1) {
+        // Active is not the last point — create a new branch variant.
+        const allKeys = getVariantKeys(traceKey);
+        const newShapeKey = traceKey + ":" + allKeys.length;
+        shapes[newShapeKey] = pts.slice(0, activeI + 1).map(p => [...p]);
+        shapes[newShapeKey].push(coord);
+        ensureBranchPolyline(traceKey, newShapeKey);
+        traceShapeKey = newShapeKey;
+        traceVariantIdx = allKeys.length;
+        traceActiveIdx = shapes[newShapeKey].length - 1;
+      } else {
+        pts.push(coord);
+        traceActiveIdx = pts.length - 1;
+      }
+      saveShapes(); redrawLine(traceKey); updateVarNav(); renderVtx(); refreshOptions();
     });
+
     document.getElementById("trace-undo").addEventListener("click", () => {
-      const pts = shapes[traceKey || traceSel.value];
-      if (pts && pts.length) { pts.pop(); saveShapes(); renderVtx(); redrawLine(traceSel.value); refreshOptions(); }
-    });
-    document.getElementById("trace-clear").addEventListener("click", () => {
-      const key = traceKey || traceSel.value;
-      if (shapes[key] && confirm("Obrisati nacrtanu rutu za " + traceSel.value + "?")) {
-        delete shapes[key]; saveShapes(); renderVtx(); redrawLine(key); refreshOptions();
+      if (!traceShapeKey) return;
+      const pts = shapes[traceShapeKey];
+      if (pts && pts.length) {
+        pts.pop(); traceActiveIdx = pts.length - 1;
+        saveShapes(); renderVtx(); redrawLine(traceKey); refreshOptions();
       }
     });
+
+    function deleteCurrentVariant() {
+      if (!tracing || !traceShapeKey || !shapes[traceShapeKey]) return;
+      const isPrimary = traceShapeKey === traceKey;
+      const allKeys = getVariantKeys(traceKey);
+      const msg = isPrimary
+        ? `Obrisati primarni put za ${traceSel.value}?`
+        : `Obrisati varijantu ${traceVariantIdx + 1}/${allKeys.length} za ${traceSel.value}?`;
+      if (!confirm(msg)) return;
+      if (isPrimary) {
+        delete shapes[traceKey];
+      } else {
+        delete shapes[traceShapeKey];
+        if (branchPolylines[traceShapeKey]) {
+          if (groups[traceKey]) groups[traceKey].removeLayer(branchPolylines[traceShapeKey]);
+          delete branchPolylines[traceShapeKey];
+        }
+        // Collect and renumber remaining branches consecutively.
+        const remaining = [];
+        for (let j = 1; shapes[traceKey + ":" + j] !== undefined; j++) {
+          remaining.push(shapes[traceKey + ":" + j]);
+          const sk = traceKey + ":" + j;
+          delete shapes[sk];
+          if (branchPolylines[sk]) {
+            if (groups[traceKey]) groups[traceKey].removeLayer(branchPolylines[sk]);
+            delete branchPolylines[sk];
+          }
+        }
+        remaining.forEach((p, idx) => {
+          const newKey = traceKey + ":" + (idx + 1);
+          shapes[newKey] = p;
+          ensureBranchPolyline(traceKey, newKey);
+        });
+      }
+      saveShapes();
+      traceShapeKey = traceKey; traceVariantIdx = 0; traceActiveIdx = -1;
+      redrawLine(traceKey); updateVarNav(); renderVtx(); refreshOptions();
+    }
+    document.getElementById("trace-clear").addEventListener("click", deleteCurrentVariant);
+
+    document.getElementById("var-del").addEventListener("click", deleteCurrentVariant);
+    document.getElementById("var-prev").addEventListener("click", () => {
+      if (!traceKey) return;
+      const keys = getVariantKeys(traceKey);
+      traceVariantIdx = (traceVariantIdx - 1 + keys.length) % keys.length;
+      traceShapeKey = keys[traceVariantIdx]; traceActiveIdx = -1;
+      updateVarNav(); renderVtx();
+    });
+    document.getElementById("var-next").addEventListener("click", () => {
+      if (!traceKey) return;
+      const keys = getVariantKeys(traceKey);
+      traceVariantIdx = (traceVariantIdx + 1) % keys.length;
+      traceShapeKey = keys[traceVariantIdx]; traceActiveIdx = -1;
+      updateVarNav(); renderVtx();
+    });
+    // ---- Draggable stop editor → stops.txt export ----------------------------
+    const stopEditLayer = L.layerGroup();
+    let stopEditMode = false;
+    const stopEditBtn = document.getElementById("stop-edit");
+
+    function buildStopEditMarkers() {
+      stopEditLayer.clearLayers();
+      const selLine = D.lines.find((l) => l.route_id + "|" + l.direction_id === traceSel.value);
+      const relevantIds = selLine ? new Set(selLine.stop_ids) : new Set();
+      D.stops.forEach((s) => {
+        if (!relevantIds.has(s.id)) return;
+        const ov = stopOverrides[s.id];
+        const lat = ov ? ov.lat : s.lat;
+        const lon = ov ? ov.lon : s.lon;
+        const m = L.marker([lat, lon], {
+          draggable: true,
+          zIndexOffset: 500,
+          icon: L.divIcon({
+            className: "",
+            html: `<div style="width:14px;height:14px;background:#ff6600;border:2px solid #fff;border-radius:50%;box-shadow:0 0 4px rgba(0,0,0,.6)"></div>`,
+            iconSize: [14, 14], iconAnchor: [7, 7],
+          }),
+        });
+        m.bindTooltip(`<b>${s.name}</b>${s.desc ? " · " + s.desc : ""}`, { sticky: true });
+        m.on("dragend", (e) => {
+          const p = e.target.getLatLng();
+          stopOverrides[s.id] = { lat: p.lat, lon: p.lng };
+          saveStopOverrides();
+          (stopLineMarkers[s.id] || []).forEach((lm) => lm.setLatLng(p));
+        });
+        m.addTo(stopEditLayer);
+      });
+    }
+
+    function setStopEdit(on) {
+      stopEditMode = on;
+      if (on) {
+        setEdit(false);   // leave overlay edit mode
+        buildStopEditMarkers();
+        stopEditLayer.addTo(map);
+        stopEditBtn.textContent = "✓ Završi uređivanje";
+        stopEditBtn.style.background = "#ffe08a";
+      } else {
+        map.removeLayer(stopEditLayer);
+        stopEditBtn.textContent = "✎ Uredi stajališta";
+        stopEditBtn.style.background = "";
+      }
+    }
+    stopEditBtn.addEventListener("click", () => setStopEdit(!stopEditMode));
+
+    document.getElementById("stop-export").addEventListener("click", () => {
+      const rows = ["stop_id,stop_name,stop_lat,stop_lon,stop_desc"];
+      D.stops.forEach((s) => {
+        const ov = stopOverrides[s.id];
+        const lat = ov ? ov.lat : s.lat;
+        const lon = ov ? ov.lon : s.lon;
+        const desc = (s.desc || "").replace(/,/g, ";");
+        const name = s.name.replace(/,/g, ";");
+        rows.push(`${s.id},${name},${lat.toFixed(6)},${lon.toFixed(6)},${desc}`);
+      });
+      const blob = new Blob([rows.join("\n") + "\n"], { type: "text/csv" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob); a.download = "stops.txt"; a.click();
+      URL.revokeObjectURL(a.href);
+      const moved = Object.keys(stopOverrides).length;
+      alert(`Izvezeno stops.txt (${moved} stajališ${moved === 1 ? "te" : "ta"} premješteno).\n\nSpremi u gtfs/ pa pokreni build_map.py.`);
+    });
+
+    document.getElementById("stop-reset").addEventListener("click", () => {
+      const n = Object.keys(stopOverrides).length;
+      if (n === 0) { alert("Nema premještenih stajališta."); return; }
+      if (!confirm(`Resetirati sva premještena stajališta (${n})?`)) return;
+      stopOverrides = {};
+      saveStopOverrides();
+      // Restore all line markers to original positions.
+      D.stops.forEach((s) => {
+        (stopLineMarkers[s.id] || []).forEach((lm) => lm.setLatLng([s.lat, s.lon]));
+      });
+      if (stopEditMode) buildStopEditMarkers();
+    });
+
     document.getElementById("trace-export").addEventListener("click", () => {
       const rows = ["shape_id,shape_pt_lat,shape_pt_lon,shape_pt_sequence"];
       const made = [];
       Object.keys(shapes).sort().forEach((key) => {
         const pts = shapes[key];
         if (!pts || pts.length < 2) return;
-        const [rid, did] = [key.slice(0, key.lastIndexOf("|")), key.slice(key.lastIndexOf("|") + 1)];
-        const sid = `SHP_${rid}_${did}`;
+        const colonIdx = key.lastIndexOf(":");
+        const baseKey = colonIdx > 0 ? key.slice(0, colonIdx) : key;
+        const varSuffix = colonIdx > 0 ? "_B" + key.slice(colonIdx + 1) : "";
+        const pipeIdx = baseKey.lastIndexOf("|");
+        const rid = baseKey.slice(0, pipeIdx);
+        const did = baseKey.slice(pipeIdx + 1);
+        const sid = `SHP_${rid}_${did}${varSuffix}`;
         made.push(`${sid} (${pts.length})`);
         pts.forEach((p, i) => rows.push(`${sid},${p[0].toFixed(6)},${p[1].toFixed(6)},${i + 1}`));
       });
