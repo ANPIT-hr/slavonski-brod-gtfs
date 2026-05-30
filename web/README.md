@@ -99,13 +99,17 @@ We review them at **`/review.html`**.
 
 **One-time setup in the Vercel dashboard:**
 
-1. **Storage → Marketplace Database Providers → Upstash → Create** a *Serverless
-   Redis* database and connect it to this project. (Pick Upstash, not "Official
-   Redis for Vercel" — Upstash is REST-based and made for serverless functions.)
-   It injects the connection env vars automatically. The code reads either
-   naming — `KV_REST_API_URL`/`KV_REST_API_TOKEN` **or**
-   `UPSTASH_REDIS_REST_URL`/`UPSTASH_REDIS_REST_TOKEN` — so whichever the
-   integration sets will work.
+1. Provision a **serverless Redis** (Upstash). Two ways:
+   - **Via Vercel** — Storage → Marketplace → **Upstash** → Create. Easiest, but
+     the Vercel-managed flow may only offer **US regions**.
+   - **Directly on Upstash (recommended for an EU region)** — at
+     [console.upstash.com](https://console.upstash.com) create a Redis DB in
+     **eu-central-1 (Frankfurt)** or **eu-west-1 (Ireland)**, open its **REST
+     API** panel, and copy `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN`
+     into Vercel's env vars by hand.
+
+   The code reads either naming — `KV_REST_API_URL`/`KV_REST_API_TOKEN` **or**
+   `UPSTASH_REDIS_REST_URL`/`UPSTASH_REDIS_REST_TOKEN` — so either route works.
 2. **Settings → Environment Variables** → add **`REVIEW_TOKEN`** = a long random
    secret. This gates `GET/PATCH /api/recommendations` and `review.html`.
    (Optional: `IP_SALT` = any string, to salt the hashed IPs.)
