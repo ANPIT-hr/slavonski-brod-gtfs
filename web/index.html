@@ -1448,6 +1448,13 @@
       const originWalk = inc[cur] && inc[cur].k === "origin" ? inc[cur].w : 0;
       rev.push({ kind: "walk", origin: true, to: cur, dep: depSec, arr: depSec + originWalk });
       const legs = rev.reverse();
+      // Don't count the wait before the first bus: shift the access walk so it
+      // ends right at boarding (i.e. "leave just in time"), like Google Maps.
+      const fr = legs.find((l) => l.kind === "ride");
+      if (fr && legs[0] && legs[0].kind === "walk" && legs[0].origin) {
+        const wdur = legs[0].arr - legs[0].dep;
+        legs[0].dep = fr.dep - wdur; legs[0].arr = fr.dep;
+      }
       legs.push({ kind: "walk", dest: true, from: best.sid, dep: arr[best.sid], arr: best.a });
       return { legs, arr: best.a };
     }
