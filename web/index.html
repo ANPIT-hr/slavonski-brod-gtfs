@@ -1414,18 +1414,19 @@
     // walk so the rider sees the whole door-to-door trip.
     function planPoints(fromPt, toPt, depSec, ymd) {
       const active = servicesForDate(ymd);
-      const arr = {}, inc = {}, boarded = {};
+      const arr = {}, inc = {}, tripInfo = {};   // tripInfo[trip] = where/when it was boarded
       for (const [sid, w] of stopsNear(fromPt)) {
         const t = depSec + w;
         if (t < (arr[sid] ?? Infinity)) { arr[sid] = t; inc[sid] = { k: "origin", w }; }
       }
       for (const c of ALL_CONNS) {
         if (!active.has(c.svc)) continue;
-        const canBoard = boarded[c.trip] || (arr[c.ds] ?? Infinity) <= c.dt;
-        if (!canBoard) continue;
-        boarded[c.trip] = true;
+        let ti = tripInfo[c.trip];
+        if (!ti && (arr[c.ds] ?? Infinity) <= c.dt)   // first stop where we can board this trip
+          ti = tripInfo[c.trip] = { boardStop: c.ds, boardTime: c.dt, rid: c.rid };
+        if (!ti) continue;
         if (c.at < (arr[c.as] ?? Infinity)) {
-          arr[c.as] = c.at; inc[c.as] = { k: "ride", c };
+          arr[c.as] = c.at; inc[c.as] = { k: "ride", trip: c.trip };
           (TRF[c.as] || []).forEach(([t, w]) => {
             if (c.at + w < (arr[t] ?? Infinity)) { arr[t] = c.at + w; inc[t] = { k: "walk", from: c.as, to: t, w, dep: c.at }; }
           });
@@ -1436,23 +1437,17 @@
         if (arr[sid] != null) { const a = arr[sid] + w; if (!best || a < best.a) best = { sid, w, a }; }
       }
       if (!best) return null;
-      // Walk the predecessor chain back to an origin stop.
-      const chain = []; let cur = best.sid, guard = 0, originStop = null, originWalk = 0;
-      while (inc[cur] && guard++ < 100000) {
+      // Reconstruct: each ride leg spans a whole trip from where it was boarded
+      // to where we got off — so staying on one line never shows a phantom transfer.
+      const rev = []; let cur = best.sid, guard = 0;
+      while (inc[cur] && inc[cur].k !== "origin" && guard++ < 100000) {
         const ic = inc[cur];
-        if (ic.k === "origin") { originStop = cur; originWalk = ic.w; break; }
-        chain.push(ic);
-        cur = ic.k === "walk" ? ic.from : ic.c.ds;
+        if (ic.k === "walk") { rev.push({ kind: "walk", from: ic.from, to: ic.to, dep: ic.dep, arr: ic.dep + ic.w }); cur = ic.from; }
+        else { const ti = tripInfo[ic.trip]; rev.push({ kind: "ride", trip: ic.trip, rid: ti.rid, from: ti.boardStop, to: cur, dep: ti.boardTime, arr: arr[cur] }); cur = ti.boardStop; }
       }
-      if (originStop == null) return null;
-      chain.reverse();
-      const legs = [{ kind: "walk", origin: true, to: originStop, dep: depSec, arr: depSec + originWalk }];
-      for (const ic of chain) {
-        if (ic.k === "walk") { legs.push({ kind: "walk", from: ic.from, to: ic.to, dep: ic.dep, arr: ic.dep + ic.w }); continue; }
-        const c = ic.c, last = legs[legs.length - 1];
-        if (last && last.kind === "ride" && last.trip === c.trip && last.to === c.ds) { last.to = c.as; last.arr = c.at; }
-        else legs.push({ kind: "ride", trip: c.trip, rid: c.rid, from: c.ds, to: c.as, dep: c.dt, arr: c.at });
-      }
+      const originWalk = inc[cur] && inc[cur].k === "origin" ? inc[cur].w : 0;
+      rev.push({ kind: "walk", origin: true, to: cur, dep: depSec, arr: depSec + originWalk });
+      const legs = rev.reverse();
       legs.push({ kind: "walk", dest: true, from: best.sid, dep: arr[best.sid], arr: best.a });
       return { legs, arr: best.a };
     }
@@ -1677,54 +1672,60 @@
     // The road-following geometry for a ride leg: slice the line's drawn polyline
     // (OSRM-snapped or hand-traced) between the vertices nearest the board and
     // alight stops, so the highlight hugs the street instead of cutting straight.
-    const SNAP_OK_M = 120;   // a stop within this of the line geometry counts as "on" it
+    const SNAP_OK_M = 120;   // a stop is "on" a geometry piece if within this distance
+    // All drawn geometry pieces (primary trace + traced branches) per route|dir.
+    const lineGeoms = {};
+    D.lines.forEach((ln) => {
+      const k = ln.route_id + "|" + ln.direction_id;
+      lineGeoms[k] = [ln.geometry].concat(ln.branches || []).filter((p) => Array.isArray(p) && p.length >= 2);
+    });
+    // Best road sub-path between two stops, searched across every piece. Returns
+    // null when no piece holds both endpoints without a big detour (wrong pass /
+    // a hop that crosses from the trunk onto a branch).
+    function bestSub(pieces, s1, s2) {
+      const straight = haversine(s1.lat, s1.lon, s2.lat, s2.lon);
+      let best = null;
+      for (const piece of pieces) {
+        let iA = 0, dA = Infinity, iB = 0, dB = Infinity;
+        for (let i = 0; i < piece.length; i++) {
+          const a0 = (piece[i][0] - s1.lat) ** 2 + (piece[i][1] - s1.lon) ** 2;
+          if (a0 < dA) { dA = a0; iA = i; }
+          const b0 = (piece[i][0] - s2.lat) ** 2 + (piece[i][1] - s2.lon) ** 2;
+          if (b0 < dB) { dB = b0; iB = i; }
+        }
+        if (haversine(piece[iA][0], piece[iA][1], s1.lat, s1.lon) > SNAP_OK_M) continue;
+        if (haversine(piece[iB][0], piece[iB][1], s2.lat, s2.lon) > SNAP_OK_M) continue;
+        let sub = piece.slice(Math.min(iA, iB), Math.max(iA, iB) + 1);
+        if (iA > iB) sub = sub.slice().reverse();
+        let len = 0;
+        for (let k = 0; k < sub.length - 1; k++) len += haversine(sub[k][0], sub[k][1], sub[k + 1][0], sub[k + 1][1]);
+        if (len > 2.5 * straight + 60) continue;   // reject wrong-pass detour
+        if (!best || dA + dB < best.score) best = { sub, score: dA + dB };
+      }
+      return best ? best.sub : null;
+    }
+    // Road-following path for a ride leg: stitch the best sub-path for each
+    // consecutive stop pair (so trunk hops use the primary trace and branch hops
+    // use the branch); a hop no piece covers falls back to a straight segment.
     function rideRoadSeg(l) {
       const t = tripById(l.trip);
       const a = stopById[l.from], b = stopById[l.to];
-      // Exact board/alight positions in the trip — match id AND time so a loop's
-      // repeated stop resolves to the correct visit.
       let bi = t ? t.stops.findIndex((s) => s[0] === l.from && s[2] === l.dep) : -1;
       let ai = t ? t.stops.findIndex((s) => s[0] === l.to && s[1] === l.arr) : -1;
       if (t && bi < 0) bi = t.stops.findIndex((s) => s[0] === l.from);
       if (t && ai < 0) ai = t.stops.findIndex((s, i) => i > bi && s[0] === l.to);
-      // Always-correct fallback: the polyline through the leg's real stop coords.
-      const stopPath = (t && bi >= 0 && ai > bi)
-        ? t.stops.slice(bi, ai + 1).map((s) => stopById[s[0]]).filter(Boolean).map((s) => [s.lat, s.lon])
-        : (a && b) ? [[a.lat, a.lon], [b.lat, b.lon]] : null;
-      const key = l.rid + "|" + (t ? t.direction_id : "0");
-      let geom = null;
-      if (linePolylines[key]) {
-        const ll = linePolylines[key].getLatLngs();
-        if (Array.isArray(ll) && ll.length && ll[0].lat != null) geom = ll.map((p) => [p.lat, p.lng]);
+      const fallback = (a && b) ? [[a.lat, a.lon], [b.lat, b.lon]] : null;
+      if (!t || bi < 0 || ai <= bi) return fallback;
+      const legStops = t.stops.slice(bi, ai + 1).map((s) => stopById[s[0]]).filter(Boolean);
+      if (legStops.length < 2) return fallback;
+      const pieces = lineGeoms[l.rid + "|" + t.direction_id] || [];
+      const out = [];
+      for (let i = 0; i < legStops.length - 1; i++) {
+        const s1 = legStops[i], s2 = legStops[i + 1];
+        const sub = (pieces.length && bestSub(pieces, s1, s2)) || [[s1.lat, s1.lon], [s2.lat, s2.lon]];
+        for (let k = out.length ? 1 : 0; k < sub.length; k++) out.push(sub[k]);   // skip shared junction
       }
-      if (!geom && origGeom[key]) geom = origGeom[key];
-      if (!geom || geom.length < 2 || bi < 0 || ai <= bi) return stopPath;
-      const hav = (p, la, lo) => {
-        const R = 6371000, r = Math.PI / 180, dla = (la - p[0]) * r, dlo = (lo - p[1]) * r;
-        return 2 * R * Math.asin(Math.sqrt(Math.sin(dla / 2) ** 2 + Math.cos(p[0] * r) * Math.cos(la * r) * Math.sin(dlo / 2) ** 2));
-      };
-      const near = (la, lo, from) => {            // nearest vertex ≥ from; bias to the first close pass
-        let bj = from, bd = Infinity;
-        for (let i = from; i < geom.length; i++) {
-          const dx = geom[i][0] - la, dy = geom[i][1] - lo, d = dx * dx + dy * dy;
-          if (d < bd) { bd = d; bj = i; }
-          if (d < (25 / 111000) ** 2) return i;
-        }
-        return bj;
-      };
-      // March a cursor through the trip from the start so the cursor reaches the
-      // right pass; require every leg stop to actually sit on the geometry, else
-      // this leg runs on a branch we don't slice → use the stop-coordinate path.
-      let cur = 0, giB = null, giA = null;
-      for (let k = 0; k <= ai; k++) {
-        const s = stopById[t.stops[k][0]]; if (!s) continue;
-        const j = near(s.lat, s.lon, cur); cur = j;
-        if (k >= bi && hav(geom[j], s.lat, s.lon) > SNAP_OK_M) return stopPath;
-        if (k === bi) giB = j;
-        if (k === ai) giA = j;
-      }
-      if (giB == null || giA == null || giA <= giB) return stopPath;
-      return geom.slice(giB, giA + 1);
+      return out.length >= 2 ? out : fallback;
     }
 
     function highlightItin(it) {
