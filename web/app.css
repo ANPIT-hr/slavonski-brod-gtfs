@@ -177,6 +177,17 @@
     .gm-results:empty { display: none; }
     .gm-extra { margin-top: 10px; }
 
+    /* Focus-visible rings + smooth transitions (a11y + polish) */
+    .gm-input-row:focus-within { transition: box-shadow .12s; }
+    .gm-seg button, .gm-go, .gm-mini button, .gm-swap, #mode-toggle button { transition: background .12s, color .12s; }
+    .itin { transition: box-shadow .12s, border-color .12s; }
+    .gm-seg button:focus-visible, .gm-go:focus-visible, .gm-mini button:focus-visible,
+    .gm-swap:focus-visible, .geo-opt:focus-visible, .board-close:focus-visible,
+    #mode-toggle button:focus-visible, .itin-head:focus-visible {
+      outline: 2px solid var(--gm-blue); outline-offset: 2px;
+    }
+    @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
     /* Desktop: left full-height sidebar in Production. */
     @media (min-width: 641px) {
       body.mode-prod #panel {

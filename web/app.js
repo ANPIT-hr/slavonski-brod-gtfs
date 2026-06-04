@@ -4,30 +4,35 @@
     // On phones the panel hides behind a floating "☰ Linije" button and slides
     // up as a bottom sheet; the editing sections start collapsed. On wider
     // screens the panel is always visible with every section expanded (as before).
-    (function () {
-      const panel = document.getElementById("panel");
-      const toggle = document.getElementById("panel-toggle");
-      const closeBtn = document.getElementById("panel-close");
-      const mq = window.matchMedia("(max-width: 640px)");
-      function openSheet(on) {
-        panel.classList.toggle("open", on);
-        toggle.textContent = on ? "✕ Zatvori" : "☰ Izbornik";
-      }
-      toggle.addEventListener("click", () => openSheet(!panel.classList.contains("open")));
-      closeBtn.addEventListener("click", () => openSheet(false));
-      // Re-sync section open-state only when crossing the breakpoint, so a user's
-      // manual expand/collapse isn't clobbered on every resize/scroll.
-      let lastMobile = null;
-      function syncMode() {
-        const m = mq.matches;
-        if (m === lastMobile) return;
-        lastMobile = m;
-        document.querySelectorAll("#panel details.sec").forEach((d) => { d.open = d.hasAttribute("data-keep-open") ? true : !m; });
-        if (!m) openSheet(false); // desktop: panel always shown, drop sheet state
-      }
-      syncMode();
-      mq.addEventListener("change", syncMode);
-    })();
+    const _panel = document.getElementById("panel");
+    const _panelToggle = document.getElementById("panel-toggle");
+    const _panelClose = document.getElementById("panel-close");
+    const _mqMobile = window.matchMedia("(max-width: 640px)");
+    // Closed-state label is mode-aware: in Production the button is the planner
+    // entry point, so it reads like a search prompt rather than a generic menu.
+    const sheetLabel = () => document.body.classList.contains("mode-prod") ? "🔍 Planiraj put" : "☰ Izbornik";
+    function openSheet(on) {
+      _panel.classList.toggle("open", on);
+      _panelToggle.textContent = on ? "✕ Zatvori" : sheetLabel();
+    }
+    function refreshSheetLabel() {
+      if (!_panel.classList.contains("open")) _panelToggle.textContent = sheetLabel();
+    }
+    _panelToggle.addEventListener("click", () => openSheet(!_panel.classList.contains("open")));
+    _panelClose.addEventListener("click", () => openSheet(false));
+    // Re-sync section open-state only when crossing the breakpoint, so a user's
+    // manual expand/collapse isn't clobbered on every resize/scroll.
+    let _lastMobile = null;
+    function syncMode() {
+      const m = _mqMobile.matches;
+      if (m === _lastMobile) return;
+      _lastMobile = m;
+      document.querySelectorAll("#panel details.sec").forEach((d) => { d.open = d.hasAttribute("data-keep-open") ? true : !m; });
+      if (!m) openSheet(false); // desktop: panel always shown, drop sheet state
+      else refreshSheetLabel();
+    }
+    syncMode();
+    _mqMobile.addEventListener("change", syncMode);
 
     const street = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19,
@@ -1040,6 +1045,7 @@
         closeStopBoard();            // departure board is Production-only
       }
       updateProdStops();             // show/hide the tappable stops layer per mode
+      refreshSheetLabel();           // mobile entry button reflects the mode
     }
     // "Linije na karti" is shared by both modes. In Production it lives at the
     // bottom of the scrolling sidebar (inside #prod-tools); in Development it
@@ -1067,8 +1073,7 @@
       s.src = "schedule.js";
       s.onload = () => {
         SCH = window.GTFS_SCHEDULE; schedState = "ready";
-        buildConnIndex(); initProdUI();
-        if (pr) pr.innerHTML = "";
+        buildConnIndex(); initProdUI();   // initProdUI replaces the loading message with the hint
       };
       s.onerror = () => {
         schedState = "error";
@@ -1514,11 +1519,27 @@
       ttLine.onchange = renderTimetable;
       document.getElementById("tt-date").onchange = renderTimetable;
       // Time-mode segmented control: leave now / depart at / arrive by.
+      const tmBtns = ["tm-now", "tm-depart", "tm-arrive"].map((id) => document.getElementById(id));
       document.getElementById("tm-now").onclick = () => { setTimeMode("now"); runPlanner(); };
       document.getElementById("tm-depart").onclick = () => setTimeMode("depart");
       document.getElementById("tm-arrive").onclick = () => setTimeMode("arrive");
+      // Keyboard a11y: arrow keys move between the tabs (WAI-ARIA tablist).
+      tmBtns.forEach((b, i) => b.addEventListener("keydown", (e) => {
+        const d = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+        if (!d) return;
+        e.preventDefault();
+        const next = tmBtns[(i + d + tmBtns.length) % tmBtns.length];
+        next.focus(); next.click();
+      }));
       setTimeMode("now");
       renderTimetable();
+      // Friendly initial state (replaces the "Učitavam…" loading message).
+      const pr = document.getElementById("pl-results");
+      if (pr) {
+        pr.innerHTML = '<p class="muted">Upiši polazak i odredište — adresu, ' +
+          '📌 točku na karti ili 📍 GPS — pa odaberi vrijeme i pritisni <b>Pronađi vožnju</b>. ' +
+          'Možeš i kliknuti stajalište na karti za polaske.</p>';
+      }
     }
 
     function runPlanner() {
