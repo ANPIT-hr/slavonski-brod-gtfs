@@ -1,18 +1,12 @@
 # Map viewer
 
-Interactive maps of the Slavonski Brod feed: every stop as a pin, every
+Interactive map of the Slavonski Brod feed: every stop as a pin, every
 route + direction drawn as a line **snapped to the real road network**.
 
-Two views, sharing the same generated `data.js`:
-- **`index.html`** — fast 2D [Leaflet](https://leafletjs.com/) map. Switch the
-  base layer (top-left control) between street map, satellite, and
-  satellite + street names.
-- **`cesium.html`** — 3D [CesiumJS](https://cesium.com/cesiumjs/) globe with
-  satellite imagery; lines drape on the ground, drag to tilt/orbit.
-
-Both pages link to each other in the panel header. **Neither needs an API key** —
-satellite is free [Esri World Imagery](https://www.arcgis.com/home/item.html?id=10df2279f9684e4a9f6a7f08febac2a9),
-and the Cesium page is configured so it never requests a Cesium Ion token.
+**`index.html`** is a 2D [Leaflet](https://leafletjs.com/) map reading the
+generated `data.js`. Switch the base layer (top-left control) between street
+map, satellite, and satellite + street names. **No API key needed** — satellite
+is free [Esri World Imagery](https://www.arcgis.com/home/item.html?id=10df2279f9684e4a9f6a7f08febac2a9).
 
 ## Two modes (top-left toggle)
 
@@ -43,10 +37,10 @@ transfers). It loads lazily the first time Production opens.
 
 ## Run it
 
-Open `index.html` (or `cesium.html`) in a browser. `data.js` is plain
-JavaScript, so the 2D map works from `file://` with no web server. Cesium loads
-better over HTTP — run `python3 -m http.server` from this folder and open
-`http://localhost:8000`.
+Open `index.html` in a browser. `data.js` is plain JavaScript, so the map works
+from `file://` with no web server. (GPS and a few features need a secure context
+— run `python3 -m http.server` from this folder and open `http://localhost:8000`,
+or deploy to Vercel.)
 
 - Right-hand panel toggles each line on/off ("Sve" / "Nijedna" = all / none).
 - Click a stop for its name, pole, position in the line, and coordinates.

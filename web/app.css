@@ -1,0 +1,206 @@
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+    #map { position: absolute; inset: 0; }
+    #panel {
+      position: absolute; top: 12px; right: 12px; z-index: 1000;
+      background: #fff; border-radius: 8px; box-shadow: 0 1px 6px rgba(0,0,0,.3);
+      padding: 10px 12px; max-height: 85vh; overflow-y: auto; width: 230px;
+    }
+    #panel h2 { font-size: 14px; margin: 0 0 8px; }
+    #panel .ctl { font-size: 12px; margin-bottom: 8px; }
+    #panel label.line { display: flex; align-items: center; gap: 8px;
+      font-size: 13px; padding: 3px 0; cursor: pointer; }
+    #panel .swatch { width: 14px; height: 14px; border-radius: 3px; flex: none; }
+    #panel .name { line-height: 1.15; }
+    #panel .name small { color: #666; display: block; font-size: 11px; }
+    .stop-dot { background: #fff; border: 2px solid #333; border-radius: 50%; }
+    a { color: #1F4E79; }
+    #panel hr { border: none; border-top: 1px solid #ddd; margin: 10px 0; }
+    #panel .sec h3 { font-size: 13px; margin: 0 0 6px; }
+    #panel .row { display: flex; align-items: center; gap: 6px; font-size: 12px; margin: 5px 0; }
+    #panel .row input[type=range] { flex: 1; }
+    #panel button { font-size: 12px; cursor: pointer; }
+    .coord-pop code { font-size: 13px; font-weight: bold; }
+    .coord-pop button { margin-top: 4px; font-size: 12px; cursor: pointer; }
+    .ov-corner { width: 16px; height: 16px; background: #1F4E79; border: 2px solid #fff;
+      border-radius: 3px; box-shadow: 0 0 3px rgba(0,0,0,.5); cursor: nwse-resize; }
+    .ov-center { width: 26px; height: 26px; background: #1F4E79; border: 2px solid #fff;
+      border-radius: 50%; box-shadow: 0 0 3px rgba(0,0,0,.5); cursor: move;
+      color: #fff; font-size: 15px; line-height: 24px; text-align: center; }
+    .me-dot { width: 16px; height: 16px; background: #1a73e8; border: 3px solid #fff;
+      border-radius: 50%; box-shadow: 0 0 5px rgba(0,0,0,.5); }
+
+    /* Collapsible sections (disclosure triangles). Open by default on desktop;
+       JS collapses them on phones to keep the sheet tidy. */
+    #panel summary { list-style: none; cursor: pointer; display: flex; align-items: center; }
+    #panel summary::-webkit-details-marker { display: none; }
+    #panel summary h3 { flex: 1; margin: 0; }
+    #panel summary::after { content: "▾"; color: #999; font-size: 12px; transition: transform .2s; }
+    #panel details[open] > summary::after { transform: rotate(180deg); }
+    #panel details.sec > *:not(summary) { margin-top: 6px; }
+
+    /* Mode toggle (top-left) + per-mode tool groups */
+    #mode-toggle {
+      position: absolute; z-index: 1100;
+      top: calc(12px + env(safe-area-inset-top)); left: calc(12px + env(safe-area-inset-left));
+      display: flex; background: #fff; border-radius: 8px; overflow: hidden;
+      box-shadow: 0 1px 6px rgba(0,0,0,.3);
+    }
+    #mode-toggle button {
+      border: none; background: #fff; color: #555; cursor: pointer;
+      font: 600 13px system-ui, sans-serif; padding: 8px 14px;
+    }
+    #mode-toggle button.active { background: #1F4E79; color: #fff; }
+    .leaflet-top.leaflet-left { margin-top: calc(46px + env(safe-area-inset-top)); }   /* clear the mode toggle */
+    .leaflet-top.leaflet-left { margin-left: env(safe-area-inset-left); }
+    #dev-tools, #prod-tools { display: none; }
+    body.mode-dev #dev-tools { display: block; }
+    body.mode-prod #prod-tools { display: block; }
+
+    /* Trip planner + timetable */
+    #panel .field { display: block; font-size: 12px; color: #555; margin: 7px 0; }
+    #panel .field select, #panel .field input { width: 100%; font-size: 13px;
+      padding: 6px; box-sizing: border-box; margin-top: 2px; }
+    .itin { border: 1px solid #ddd; border-radius: 6px; padding: 7px 9px;
+      margin: 7px 0; cursor: pointer; }
+    .itin:hover { background: #f5f8fc; }
+    .itin.sel { border-color: #1F4E79; background: #eef3fa; }
+    .itin .head { display: flex; justify-content: space-between;
+      font-size: 12px; color: #666; margin-bottom: 4px; }
+    .leg { display: flex; align-items: center; gap: 6px; font-size: 12px; padding: 2px 0; }
+    .leg .badge { color: #fff; border-radius: 4px; padding: 1px 6px;
+      font-weight: 700; font-size: 11px; flex: none; }
+    .leg.walk { color: #777; }
+    .tt-wrap { max-height: 42vh; overflow: auto; margin-top: 6px; }
+    .tt-table { border-collapse: collapse; font-size: 11px; }
+    .tt-table th, .tt-table td { border: 1px solid #eee; padding: 2px 5px;
+      text-align: left; white-space: nowrap; }
+    .tt-table th { background: #f5f5f5; position: sticky; top: 0; }
+    .tt-table td:first-child, .tt-table th:first-child {
+      position: sticky; left: 0; background: #fafafa; }
+    .muted { color: #888; font-size: 12px; margin: 6px 0; }
+    .geo-picker { display: flex; flex-direction: column; gap: 4px; margin: 4px 0; }
+    .geo-opt { text-align: left; font-size: 12px; padding: 7px 9px; border: 1px solid #ddd;
+      border-radius: 6px; background: #fff; cursor: pointer; color: #222; }
+    .geo-opt:hover { background: #f5f8fc; border-color: #1F4E79; }
+
+    /* Mobile: the panel becomes a slide-up bottom sheet behind a floating button. */
+    #panel-toggle, #panel-close { display: none; }
+    @media (max-width: 640px) {
+      #panel-toggle {
+        display: inline-flex; align-items: center; gap: 6px;
+        position: absolute; z-index: 1100;
+        top: calc(10px + env(safe-area-inset-top)); right: calc(10px + env(safe-area-inset-right));
+        height: 44px; padding: 0 16px; border: none; border-radius: 22px;
+        background: #fff; color: #1F4E79; font-size: 15px; font-weight: 600;
+        box-shadow: 0 2px 8px rgba(0,0,0,.3); cursor: pointer;
+      }
+      #panel {
+        top: auto; bottom: 0; left: 0; right: 0; width: auto;
+        max-height: 80vh; padding: 0 16px calc(20px + env(safe-area-inset-bottom));
+        border-radius: 16px 16px 0 0; box-shadow: 0 -3px 18px rgba(0,0,0,.28);
+        transform: translateY(102%); transition: transform .25s ease;
+        -webkit-overflow-scrolling: touch;
+      }
+      #panel.open { transform: translateY(0); }
+      #panel::before {                                   /* grab handle */
+        content: ""; display: block; width: 40px; height: 4px;
+        background: #ccc; border-radius: 2px; margin: 10px auto 6px;
+      }
+      #panel h2 {
+        position: sticky; top: 0; z-index: 2; background: #fff;
+        font-size: 18px; margin: 0 0 8px; padding: 4px 0 8px;
+        display: flex; align-items: center;
+      }
+      #panel h2 a { float: none; margin-left: auto; }
+      #panel-close {
+        display: inline-flex; align-items: center; justify-content: center;
+        margin-left: 10px; width: 34px; height: 34px; border: none;
+        border-radius: 50%; background: #f0f0f0; color: #333;
+        font-size: 17px; line-height: 1; cursor: pointer; flex: none;
+      }
+      #panel summary h3, #panel .sec h3 { font-size: 16px; }
+      #panel summary::after { font-size: 14px; }
+      #panel label.line { font-size: 16px; padding: 9px 0; gap: 12px; }
+      #panel .swatch { width: 18px; height: 18px; }
+      #panel label.line input[type=checkbox],
+      #panel .row input[type=checkbox] { width: 20px; height: 20px; flex: none; }
+      #panel .name small { font-size: 13px; }
+      #panel button, #panel select { min-height: 42px; font-size: 14px; padding: 8px 12px; }
+      #panel .ctl { font-size: 14px; }
+      #panel .row { font-size: 13px; margin: 8px 0; gap: 8px; }
+      #panel small { font-size: 12.5px; line-height: 1.4; }
+      .leaflet-popup-content button { min-height: 38px; font-size: 13px; }
+      .leaflet-control-layers-toggle { width: 44px; height: 44px; }
+      #mode-toggle button { padding: 10px 16px; font-size: 14px; }
+    }
+
+    /* ====================================================================
+       Production — Google-Maps-style shell.
+       In Production, #panel becomes a full-height left sidebar (desktop) or a
+       bottom sheet (mobile, reusing the existing sheet CSS). Development mode
+       keeps the right-hand floating panel untouched.
+       ==================================================================== */
+    :root { --gm-w: 392px; --gm-blue: #1a73e8; --gm-green: #198754; --gm-red: #c0392b; }
+
+    .gm-card { background: #fff; }
+    .gm-trip { display: grid; grid-template-columns: 14px 1fr 34px; align-items: stretch; gap: 8px; }
+    .gm-rail { display: flex; flex-direction: column; align-items: center; padding: 16px 0; }
+    .gm-dot { width: 11px; height: 11px; flex: none; }
+    .gm-dot.from { background: var(--gm-green); border-radius: 50%; }
+    .gm-dot.to { background: var(--gm-red); border-radius: 2px; }          /* square = destination, like GMaps */
+    .gm-trunk { flex: 1; width: 2px; background: #dadce0; margin: 4px 0; min-height: 16px; }
+    .gm-inputs { display: flex; flex-direction: column; gap: 7px; min-width: 0; justify-content: center; }
+    .gm-input-row { display: flex; align-items: center; gap: 2px; background: #f1f3f4;
+      border-radius: 8px; padding: 0 4px 0 11px; }
+    .gm-input-row:focus-within { background: #fff; box-shadow: inset 0 0 0 2px var(--gm-blue); }
+    .gm-input-row input { flex: 1; min-width: 0; border: none; background: transparent;
+      font-size: 14px; padding: 10px 0; outline: none; color: #202124; }
+    .gm-mini { display: flex; flex: none; }
+    .gm-mini button { border: none; background: transparent; cursor: pointer; font-size: 14px;
+      width: 30px; height: 34px; border-radius: 6px; }
+    .gm-mini button:hover { background: rgba(60,64,67,.08); }
+    .gm-swap { border: none; background: #fff; cursor: pointer; width: 34px; height: 34px;
+      border-radius: 50%; font-size: 17px; color: #5f6368; align-self: center; }
+    .gm-swap:hover { background: rgba(60,64,67,.08); }
+    .gm-info { margin: 3px 0 0 22px; font-size: 11.5px; }
+    .gm-info:empty { display: none; }
+
+    .gm-seg { display: flex; background: #f1f3f4; border-radius: 999px; padding: 3px; margin-top: 12px; }
+    .gm-seg button { flex: 1; border: none; background: transparent; cursor: pointer;
+      font: 600 12.5px system-ui, sans-serif; color: #5f6368; padding: 7px 6px; border-radius: 999px; }
+    .gm-seg button.active { background: #fff; color: var(--gm-blue); box-shadow: 0 1px 3px rgba(0,0,0,.2); }
+    .gm-seg button:disabled { opacity: .45; cursor: not-allowed; }
+    .gm-when { margin-top: 8px; }
+    .gm-go { width: 100%; margin-top: 12px; border: none; border-radius: 8px; background: var(--gm-blue);
+      color: #fff; font: 600 14px system-ui, sans-serif; padding: 11px; cursor: pointer; }
+    .gm-go:hover { background: #1b66c9; }
+    .gm-results:empty { display: none; }
+    .gm-extra { margin-top: 10px; }
+
+    /* Desktop: left full-height sidebar in Production. */
+    @media (min-width: 641px) {
+      body.mode-prod #panel {
+        top: 0; left: 0; right: auto; bottom: 0;
+        width: var(--gm-w); height: 100%; max-height: none;
+        border-radius: 0; padding: 0; overflow: hidden;
+        box-shadow: 2px 0 14px rgba(0,0,0,.16);
+        display: flex; flex-direction: column;
+      }
+      body.mode-prod #panel > h2 {
+        flex: none; margin: 0; padding: 13px 16px; font-size: 15px;
+        border-bottom: 1px solid #eee; display: flex; align-items: center;
+      }
+      body.mode-prod #prod-tools {
+        flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column;
+      }
+      body.mode-prod .gm-card {
+        position: sticky; top: 0; z-index: 2; background: #fff;
+        padding: 14px 16px; border-bottom: 1px solid #eee;
+      }
+      body.mode-prod #pl-results { padding: 4px 12px; }
+      body.mode-prod .gm-extra { padding: 0 16px; }
+      body.mode-prod #lines-sec { padding: 8px 16px 16px; border-top: 1px solid #eee; }
+      /* keep the mode toggle + leaflet controls clear of the sidebar */
+      body.mode-prod #mode-toggle { left: auto; right: 12px; }
+      body.mode-prod .leaflet-top.leaflet-left { margin-left: calc(var(--gm-w) + 12px); }
+    }

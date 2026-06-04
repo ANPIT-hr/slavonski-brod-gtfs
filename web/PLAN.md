@@ -236,5 +236,144 @@ states, and README updates (modes, env vars, KV setup, review workflow).
 ## Explicitly out of scope (for now)
 - Real-time/live vehicle positions.
 - Multi-language UI (stays Croatian).
-- Wiring `shape_id` into `trips.txt` for full GTFS correctness (separate task).
+- ~~Wiring `shape_id` into `trips.txt` for full GTFS correctness~~ — **done**, composed at build time by `scripts/build_feed.py`.
 - User accounts / edit history per user.
+
+---
+---
+
+# Part 2 — Google Maps shell redesign (Production mode)
+
+Phases 0–3 above shipped: Production mode already does from/to → CSA routing →
+ranked itineraries with a white-cased colored map highlight, plus a timetable
+browser. The engine, geocoding, map highlight, and calendar logic are **kept
+as-is**. This part is a **UI/UX redesign** to make Production look and behave
+like Google Maps transit directions, plus four behavior additions. Development
+mode is untouched.
+
+## Goal & decisions (locked with the user, 2026-06-04)
+
+| Decision | Choice |
+|----------|--------|
+| Layout fidelity | **Full Google Maps shell** — top search card + full-height results sidebar (desktop), bottom sheet (mobile), map fills the rest. |
+| Behaviors to add | **All four:** Leave now / Arrive by · step-by-step directions · departure boards · live-ish re-ranking itinerary list. |
+| Engine | Reuse the existing CSA. One addition: a **reverse scan for "Arrive by"**. No server. |
+| Language | Croatian (as now). |
+| Dev mode | Unchanged — keeps the current right-side `#panel`. |
+
+## Where the current code lives (index.html, single file)
+
+- Markup: `#prod-tools` block (lines ~157–195) inside the shared `#panel`.
+- Engine: `planPoints` / `planTopPoints` (CSA, ~1415–1472), `buildConnIndex`,
+  `servicesForDate`, `stopsNear`.
+- Render: `renderItins` (~1648), `highlightItin` (~1738), `renderTimetable`
+  (~1768), `displayLegs` (~1372).
+- Helpers reused verbatim: `fmtT`, `routeMeta`, `stopName`, `stopById`,
+  `lineGeoms`, `rideRoadSeg`, geocode/pin/GPS endpoint machinery (`ENDP`,
+  `setEndpoint`, `runSearch`, `setPinMode`).
+
+## Target layout
+
+```
+DESKTOP (≥ 900px)                         MOBILE (< 640px)
+┌────────────┬──────────────────────┐     ┌──────────────────────┐
+│ ◉ Od    ⇅  │                      │     │      [ MAP ]          │
+│ ◉ Do       │                      │     │                      │
+│ ⏱ Sada ▾   │        [ MAP ]       │     ├──────────────────────┤ ← bottom sheet
+├────────────┤                      │     │ ◉ Od   ◉ Do   ⏱ Sada │   (collapsed:
+│ 14:24–14:48│      ╱──L1            │     ├──────────────────────┤    just inputs;
+│  🚌L1·🚶·L3 │     ●                │     │ 14:24 24min L1·🚶·L3  │    drag up for
+│ ───────────│      ╲──L3           │     │ 14:31 31min L2        │    results)
+│ 14:31–15:02│                      │     └──────────────────────┘
+│  🚌L2       │                      │
+│ ⋮ (boards) │                      │
+└────────────┴──────────────────────┘
+```
+
+- **Sidebar** `#gm-sidebar`: fixed left, full height, ~390px desktop. Two
+  stacked regions: a sticky **search card** (`#gm-search`) on top and a
+  scrollable **results list** (`#gm-results`) below.
+- **Search card**: green-dot *Od* + red-dot *Do* inputs with a swap button
+  between them (reuses `ENDP`/`setEndpoint`); a **time-mode control** row:
+  `Sada` (now) · `Polazak u…` (depart at) · `Dolazak do…` (arrive by) →
+  reveals date+time pickers when not "Sada".
+- **Results list**: itinerary cards (redesigned `renderItins`). Each card
+  expands in place into **step-by-step directions**. A secondary tab/section
+  hosts the **timetable** and **departure boards**.
+- **Map** keeps the existing line layers, line on/off toggles (moved into a
+  small floating control or a sidebar "Linije" disclosure), and the
+  `highlightItin` rendering.
+- **Mobile**: the sidebar becomes a bottom sheet (reuse the existing sheet CSS
+  pattern from `#panel`), three detents — peek (inputs only), half (results),
+  full. The map stays interactive above it.
+
+## Behavior specs
+
+### 1. Leave now / Arrive by (engine + UI)
+- Time-mode segmented control: `Sada | Polazak u | Dolazak do`.
+  - **Sada**: depart = current time; auto-refresh the list when reopened /
+    every ~60s while idle (the "live-ish" feel).
+  - **Polazak u**: current behavior (forward CSA from the chosen time).
+  - **Dolazak do**: NEW. Add `planPointsArrive(fromPt, toPt, arrSec, ymd)` — a
+    reverse Connection Scan: iterate `ALL_CONNS` by **descending arrival time**,
+    track the *latest departure* `dep[stop]` from which you can still reach the
+    destination by `arrSec`, seed destination-near stops with egress walk, and
+    reconstruct forward. Mirror image of `planPoints`; reuses `TRF`,
+    `servicesForDate`, `stopsNear`. `planTopArrive` returns the N latest-leaving
+    feasible options.
+- ✅ A known arrive-by case returns the latest departure that still arrives in
+  time; flipping modes re-runs the search.
+
+### 2. Step-by-step directions (render only — data already present)
+- Clicking an itinerary card expands it to a Google-style step list:
+  - access walk → "Hodaj N min do {stop}"
+  - board → colored line badge, "U {HH:MM} sjedni na {linija} prema {headsign}"
+  - "Vozi se N stajališta ({first → last})", optionally an expandable list of
+    intermediate stop names (from `tripById(l.trip).stops` sliced board→alight).
+  - transfer walk, then egress walk → "Hodaj N min do cilja".
+- Tapping a step pans/zooms the map to that leg (reuse `rideRoadSeg`).
+- ✅ Stop counts and intermediate names match the GTFS for a 1-transfer trip.
+
+### 3. Departure boards (stop view)
+- In Production, clicking a stop marker (markers already `bindPopup`, ~410)
+  opens a **departures board** in the sidebar instead of just the popup:
+  "Sljedeći polasci s {stop}" — next ~10 departures across all lines serving
+  that stop on the selected day, each row: `HH:MM · {badge} {line} → {headsign}`,
+  computed from `SCH.trips` filtered by stop + `servicesForDate` + time ≥ now.
+- A "Vozni red cijele linije" link opens the existing `renderTimetable` grid
+  for that line.
+- ✅ Board matches the timetable for a hand-checked stop and day.
+
+### 4. Live-ish itinerary list (render + polish)
+- Cards show Google-style summary chips: **total duration**, **arrival–departure
+  window**, **# transfers**, **walking minutes**, and the line badges in order.
+- The first card is auto-selected and highlighted on the map (as today).
+- In "Sada" mode, re-rank/refresh as time advances or inputs change (debounced).
+- ✅ Changing the time pickers re-runs and re-sorts without a full reload.
+
+## Implementation phases (each independently shippable)
+
+- **P2.0 — Sidebar shell.** New `#gm-sidebar` (search card + results regions) and
+  CSS; move `#prod-tools` content in; desktop layout + mobile bottom sheet with
+  detents. Wire existing planner to the new inputs. Dev mode still uses `#panel`.
+  Visual change only; routing unchanged.
+- **P2.1 — Itinerary cards + step-by-step.** Rewrite `renderItins` for the card
+  look and the expand-to-steps interaction; step→map focus.
+- **P2.2 — Time modes + arrive-by.** Segmented control + `planPointsArrive` /
+  `planTopArrive`; "Sada" auto-refresh.
+- **P2.3 — Departure boards.** Stop-click board in the sidebar + link to the
+  full-line timetable.
+- **P2.4 — Polish.** Material-ish inputs, icons, transitions, empty/error/loading
+  states, one-handed mobile pass, a11y (focus order, aria on the segmented
+  control and sheet).
+
+## Risks / notes
+- **Single-file growth**: `index.html` is already ~1800 lines. Option to split
+  CSS/JS into `web/app.css` + `web/app.js` during P2.0 — flag for decision; keeps
+  `file://` openability either way (no bundler).
+- **Reverse CSA correctness**: needs its own test case incl. a past-midnight
+  trip (seconds-after-midnight already handles >24:00).
+- **Sidebar vs map real estate on mobile**: bottom-sheet detents must not trap
+  the map; test the drag handoff.
+- **Line toggles' new home**: confirm during P2.0 (floating control vs sidebar
+  disclosure) so they stay reachable in both modes.
