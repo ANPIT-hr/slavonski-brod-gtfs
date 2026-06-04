@@ -1062,6 +1062,21 @@
     modeDevBtn.addEventListener("click", () => applyMode("dev"));
     modeProdBtn.addEventListener("click", () => applyMode("prod"));
 
+    // Development mode is hidden from riders: the "Razvoj" tab only appears after
+    // a hidden gesture — three quick taps on "Produkcija". It also shows
+    // automatically when we're already in dev (e.g. a ?mode=dev deep link), so the
+    // active tab is never invisible. Stays revealed for the session.
+    modeDevBtn.style.display = "none";
+    function revealDev() { modeDevBtn.style.display = ""; }
+    if (appMode === "dev") revealDev();
+    let _devTaps = 0, _devTapTimer = null;
+    modeProdBtn.addEventListener("click", () => {
+      _devTaps++;
+      clearTimeout(_devTapTimer);
+      _devTapTimer = setTimeout(() => { _devTaps = 0; }, 700);
+      if (_devTaps >= 3) { _devTaps = 0; revealDev(); }
+    });
+
     // ---- Lazy-load schedule.js the first time Production is opened -----------
     let SCH = null, schedState = "idle";       // idle | loading | ready | error
     function ensureSchedule() {
