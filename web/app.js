@@ -1669,82 +1669,154 @@
       if (pts && pts.length >= 2) map.fitBounds(pts, fitOpts());
     }
 
-    // The road-following geometry for a ride leg: slice the line's drawn polyline
-    // (OSRM-snapped or hand-traced) between the vertices nearest the board and
-    // alight stops, so the highlight hugs the street instead of cutting straight.
-    const SNAP_OK_M = 120;   // a stop is "on" a geometry piece if within this distance
-    // All drawn geometry pieces (primary trace + traced branches) per route|dir.
+    // Road-following geometry for a ride leg: project the board/alight stops onto
+    // the route's drawn polyline and slice it, so the highlight hugs the street.
+    // Ported from scripts/build_feed.py (which composes the GTFS shapes the same
+    // way) — it projects onto trace *segments* (not just vertices), so stops in
+    // the middle of a long, sparsely-clicked straight road still match; tries
+    // every candidate projection (loop routes pass a street twice); and stitches
+    // trunk<->branch hops through a junction. Tolerances mirror build_feed.py.
+    const HL_SNAP = 130, HL_DK = 3.0, HL_DC = 100, HL_JUNC = 100, HL_CONT = 200;
     const lineGeoms = {};
     D.lines.forEach((ln) => {
       const k = ln.route_id + "|" + ln.direction_id;
       lineGeoms[k] = [ln.geometry].concat(ln.branches || []).filter((p) => Array.isArray(p) && p.length >= 2);
     });
-    // Best road sub-path between two stops, searched across every piece. Returns
-    // null when no piece holds both endpoints without a big detour (wrong pass /
-    // a hop that crosses from the trunk onto a branch).
-    function bestSub(pieces, s1, s2) {
-      const straight = haversine(s1.lat, s1.lon, s2.lat, s2.lon);
-      let best = null;
-      for (const piece of pieces) {
-        let iA = 0, dA = Infinity, iB = 0, dB = Infinity;
-        for (let i = 0; i < piece.length; i++) {
-          const a0 = (piece[i][0] - s1.lat) ** 2 + (piece[i][1] - s1.lon) ** 2;
-          if (a0 < dA) { dA = a0; iA = i; }
-          const b0 = (piece[i][0] - s2.lat) ** 2 + (piece[i][1] - s2.lon) ** 2;
-          if (b0 < dB) { dB = b0; iB = i; }
-        }
-        if (haversine(piece[iA][0], piece[iA][1], s1.lat, s1.lon) > SNAP_OK_M) continue;
-        if (haversine(piece[iB][0], piece[iB][1], s2.lat, s2.lon) > SNAP_OK_M) continue;
-        let sub = piece.slice(Math.min(iA, iB), Math.max(iA, iB) + 1);
-        if (iA > iB) sub = sub.slice().reverse();
-        let len = 0;
-        for (let k = 0; k < sub.length - 1; k++) len += haversine(sub[k][0], sub[k][1], sub[k + 1][0], sub[k + 1][1]);
-        if (len > 2.5 * straight + 60) continue;   // reject wrong-pass detour
-        if (!best || dA + dB < best.score) best = { sub, score: dA + dB };
+    const _hv = (p, q) => haversine(p[0], p[1], q[0], q[1]);
+    // Candidate projections of point s onto a polyline — one per contiguous run
+    // of segments within `snap`. Each: [segIdx, t, point, dist].
+    function projCands(piece, s, snap) {
+      const hits = [];
+      for (let i = 0; i < piece.length - 1; i++) {
+        const a = piece[i], b = piece[i + 1], dx = b[0] - a[0], dy = b[1] - a[1], den = dx * dx + dy * dy;
+        const t = den === 0 ? 0 : Math.max(0, Math.min(1, ((s[0] - a[0]) * dx + (s[1] - a[1]) * dy) / den));
+        const p = [a[0] + t * dx, a[1] + t * dy], d = _hv(p, s);
+        if (d <= snap) hits.push([i, t, p, d]);
       }
-      return best ? best.sub : null;
-    }
-    // Road-following path for a ride leg: stitch the best sub-path for each
-    // consecutive stop pair (so trunk hops use the primary trace and branch hops
-    // use the branch); a hop no piece covers falls back to a straight segment.
-    function rideRoadSeg(l) {
-      const t = tripById(l.trip);
-      const a = stopById[l.from], b = stopById[l.to];
-      let bi = t ? t.stops.findIndex((s) => s[0] === l.from && s[2] === l.dep) : -1;
-      let ai = t ? t.stops.findIndex((s) => s[0] === l.to && s[1] === l.arr) : -1;
-      if (t && bi < 0) bi = t.stops.findIndex((s) => s[0] === l.from);
-      if (t && ai < 0) ai = t.stops.findIndex((s, i) => i > bi && s[0] === l.to);
-      const fallback = (a && b) ? [[a.lat, a.lon], [b.lat, b.lon]] : null;
-      if (!t || bi < 0 || ai <= bi) return fallback;
-      const legStops = t.stops.slice(bi, ai + 1).map((s) => stopById[s[0]]).filter(Boolean);
-      if (legStops.length < 2) return fallback;
-      const pieces = lineGeoms[l.rid + "|" + t.direction_id] || [];
       const out = [];
-      for (let i = 0; i < legStops.length - 1; i++) {
-        const s1 = legStops[i], s2 = legStops[i + 1];
-        const sub = (pieces.length && bestSub(pieces, s1, s2)) || [[s1.lat, s1.lon], [s2.lat, s2.lon]];
-        for (let k = out.length ? 1 : 0; k < sub.length; k++) out.push(sub[k]);   // skip shared junction
+      for (const h of hits) {
+        if (out.length && h[0] - out[out.length - 1][0] <= 2) { if (h[3] < out[out.length - 1][3]) out[out.length - 1] = h; }
+        else out.push(h);
+      }
+      return out;
+    }
+    const _cmp = (a, b) => (a[0] !== b[0] ? a[0] - b[0] : a[1] - b[1]);   // order by (segIdx, t)
+    function subBetween(piece, a, b) {
+      const rev = _cmp(a, b) > 0, lo = rev ? b : a, hi = rev ? a : b;
+      let sub = [lo[2]].concat(piece.slice(lo[0] + 1, hi[0] + 1)).concat([hi[2]]);
+      if (rev) sub = sub.slice().reverse();
+      let len = 0;
+      for (let k = 0; k < sub.length - 1; k++) len += _hv(sub[k], sub[k + 1]);
+      return [sub, len];
+    }
+    const _plausible = (len, straight) => len >= straight - 2 * HL_SNAP - 50 && len <= HL_DK * straight + HL_DC;
+    // Every plausible sub-path between two consecutive stops: single-piece plus
+    // two-leg trunk<->spur composites through a junction. [[score, sub], ...].
+    function hopOptions(pieces, s1, s2) {
+      const straight = _hv(s1, s2), opts = [];
+      for (const piece of pieces) {
+        if (piece.length < 2) continue;
+        for (const a of projCands(piece, s1, HL_SNAP)) for (const b of projCands(piece, s2, HL_SNAP)) {
+          const [sub, len] = subBetween(piece, a, b);
+          if (_plausible(len, straight)) opts.push([len + 2 * (a[3] + b[3]), sub]);
+        }
+      }
+      if (opts.length) return opts;
+      for (const X of pieces) {
+        const cA = projCands(X, s1, HL_SNAP); if (!cA.length) continue;
+        for (const Y of pieces) {
+          if (Y === X || Y.length < 2) continue;
+          const cB = projCands(Y, s2, HL_SNAP); if (!cB.length) continue;
+          for (const j of [X[0], X[X.length - 1], Y[0], Y[Y.length - 1]])
+            for (const jx of projCands(X, j, HL_JUNC)) for (const jy of projCands(Y, j, HL_JUNC))
+              for (const a of cA) {
+                const [legA, lenA] = subBetween(X, a, jx);
+                for (const b of cB) {
+                  const [legB, lenB] = subBetween(Y, jy, b);
+                  if (_plausible(lenA + lenB, straight)) opts.push([lenA + lenB + 2 * (a[3] + b[3]), legA.concat(legB.slice(1))]);
+                }
+              }
+        }
+      }
+      return opts;
+    }
+    // Resolve a ride leg to its ordered stops + the route's geometry pieces.
+    function rideLeg(l) {
+      const t = tripById(l.trip);
+      if (!t) return null;
+      let bi = t.stops.findIndex((s) => s[0] === l.from && s[2] === l.dep);
+      let ai = t.stops.findIndex((s) => s[0] === l.to && s[1] === l.arr);
+      if (bi < 0) bi = t.stops.findIndex((s) => s[0] === l.from);
+      if (ai < 0) ai = t.stops.findIndex((s, i) => i > bi && s[0] === l.to);
+      if (bi < 0 || ai <= bi) return null;
+      const legStops = t.stops.slice(bi, ai + 1).map((s) => stopById[s[0]]).filter(Boolean);
+      if (legStops.length < 2) return null;
+      return { legStops, pieces: lineGeoms[l.rid + "|" + t.direction_id] || [] };
+    }
+    // Best matched sub-path for one hop (null if no traced piece covers it).
+    function hopSub(pieces, s1, s2, prevEnd) {
+      let options = pieces.length ? hopOptions(pieces, s1, s2) : [];
+      if (prevEnd && options.length) {             // prefer options continuing from the last hop
+        const cont = options.filter((o) => _hv(o[1][0], prevEnd) <= HL_CONT);
+        if (cont.length) options = cont;
+      }
+      return options.length ? options.reduce((m, o) => (o[0] < m[0] ? o : m))[1] : null;
+    }
+    // Synchronous road-following path: matched sub-paths where traced, straight
+    // chords where not (those get upgraded asynchronously by fillRideSeg).
+    function rideRoadSeg(l) {
+      const a = stopById[l.from], b = stopById[l.to];
+      const fallback = (a && b) ? [[a.lat, a.lon], [b.lat, b.lon]] : null;
+      const leg = rideLeg(l);
+      if (!leg) return fallback;
+      const out = [];
+      let prevEnd = null;
+      for (let i = 0; i < leg.legStops.length - 1; i++) {
+        const s1 = [leg.legStops[i].lat, leg.legStops[i].lon], s2 = [leg.legStops[i + 1].lat, leg.legStops[i + 1].lon];
+        const sub = hopSub(leg.pieces, s1, s2, prevEnd) || [s1, s2];
+        for (let k = out.length ? 1 : 0; k < sub.length; k++) out.push(sub[k]);
+        prevEnd = sub[sub.length - 1];
       }
       return out.length >= 2 ? out : fallback;
     }
+    // Async variant: untraced hops (no matched sub-path) are routed via OSRM's
+    // driving profile so even unmapped segments follow the road. Returns the full
+    // path only if at least one hop was actually filled (else null → no redraw).
+    async function fillRideSeg(l) {
+      const leg = rideLeg(l);
+      if (!leg) return null;
+      const out = [];
+      let prevEnd = null, filled = false;
+      for (let i = 0; i < leg.legStops.length - 1; i++) {
+        const s1 = [leg.legStops[i].lat, leg.legStops[i].lon], s2 = [leg.legStops[i + 1].lat, leg.legStops[i + 1].lon];
+        let sub = hopSub(leg.pieces, s1, s2, prevEnd);
+        if (!sub) {
+          const road = await osrmGeom("driving", s1, s2);
+          if (road && road.length >= 2) { sub = road; filled = true; } else sub = [s1, s2];
+        }
+        for (let k = out.length ? 1 : 0; k < sub.length; k++) out.push(sub[k]);
+        prevEnd = sub[sub.length - 1];
+      }
+      return filled && out.length >= 2 ? out : null;
+    }
 
-    // Pedestrian routing for walk legs via the public OSRM "foot" profile, so
-    // the dotted walk hugs sidewalks instead of cutting straight. Results are
-    // cached (promise per rounded endpoint pair); on any failure the straight
-    // line drawn first simply stays.
-    const walkCache = {};
-    function walkRoute(a, b) {                    // a, b = [lat, lon]
-      const key = `${a[0].toFixed(5)},${a[1].toFixed(5)};${b[0].toFixed(5)},${b[1].toFixed(5)}`;
-      if (key in walkCache) return walkCache[key];
-      const url = "https://router.project-osrm.org/route/v1/foot/" +
+    // Road/footpath routing via the public OSRM demo. Used for walk legs ("foot")
+    // and to fill untraced bus hops ("driving"). Cached (promise per profile +
+    // rounded endpoint pair); on any failure the straight line drawn first stays.
+    const osrmCache = {};
+    function osrmGeom(profile, a, b) {            // a, b = [lat, lon]
+      const key = `${profile}:${a[0].toFixed(5)},${a[1].toFixed(5)};${b[0].toFixed(5)},${b[1].toFixed(5)}`;
+      if (key in osrmCache) return osrmCache[key];
+      const url = `https://router.project-osrm.org/route/v1/${profile}/` +
         `${a[1]},${a[0]};${b[1]},${b[0]}?overview=full&geometries=geojson`;
       const p = fetch(url).then((r) => (r.ok ? r.json() : null)).then((d) => {
         if (!d || d.code !== "Ok" || !d.routes || !d.routes.length) return null;
         return d.routes[0].geometry.coordinates.map(([lon, lat]) => [lat, lon]);
       }).catch(() => null);
-      walkCache[key] = p;
+      osrmCache[key] = p;
       return p;
     }
+    const walkRoute = (a, b) => osrmGeom("foot", a, b);
 
     let hlGen = 0;                                // bumped each highlight; async walk routes ignore stale runs
     function highlightItin(it) {
@@ -1756,12 +1828,16 @@
           const seg = rideRoadSeg(l);
           if (!seg || seg.length < 2) return;
           const m = routeMeta(l.rid);
-          L.polyline(seg, { color: "#fff", weight: 11, opacity: 0.6 }).addTo(plLayer);
-          L.polyline(seg, { color: m.color, weight: 6, opacity: 0.95 }).addTo(plLayer);
+          const casing = L.polyline(seg, { color: "#fff", weight: 11, opacity: 0.6 }).addTo(plLayer);
+          const core = L.polyline(seg, { color: m.color, weight: 6, opacity: 0.95 }).addTo(plLayer);
           [stopById[l.from], stopById[l.to]].forEach((s) => {
             if (s) L.circleMarker([s.lat, s.lon], { radius: 5, color: m.color, fillColor: "#fff", fillOpacity: 1, weight: 3 }).addTo(plLayer);
           });
           seg.forEach((p) => bounds.push(p));
+          // Upgrade any untraced (straight) hops to OSRM road geometry when it returns.
+          fillRideSeg(l).then((filled) => {
+            if (gen === hlGen && filled) { casing.setLatLngs(filled); core.setLatLngs(filled); }
+          });
         } else {                              // walk leg (access / egress / transfer)
           let a = null, b = null;
           if (l.origin) { if (ENDP.from.pt) a = [ENDP.from.pt.lat, ENDP.from.pt.lon]; const s = stopById[l.to]; if (s) b = [s.lat, s.lon]; }
