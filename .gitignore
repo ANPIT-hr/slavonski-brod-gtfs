@@ -13,7 +13,9 @@ Thumbs.db
 .idea/
 *.swp
 *~
-tools/
+
+# Validator jar is too big to track; the helper scripts in tools/ are tracked
+tools/*.jar
 
 # Local Claude config (not shared)
 .claude/settings.local.json
@@ -21,3 +23,5 @@ tools/
 # Python build junk
 __pycache__/
 *.pyc
+
+web/.env

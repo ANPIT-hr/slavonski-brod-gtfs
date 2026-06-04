@@ -12,14 +12,9 @@ The `latest/download/` URL never changes across versions — every new release r
 
 ---
 
-## ⚠️ Not yet ready for Google submission
+## Status: alpha
 
-Two blockers before this feed can go live:
-
-1. **Real stop coordinates** — all 95 stops still use placeholders.
-2. **Clean run from the official MobilityData GTFS Validator.**
-
-Details and the full TODO list: [docs/known-issues.md](docs/known-issues.md).
+The feed validates cleanly (0 errors) with the official MobilityData GTFS Validator and is being tested with Google. Remaining known gaps — stop-coordinate field verification, L0 route geometry, the L4 short-pattern simplification — are tracked in [docs/known-issues.md](docs/known-issues.md).
 
 ---
 
@@ -47,7 +42,7 @@ The data flows in three stages — original PDFs, hand-checked markdown transcri
 │   ├── LINIJA_1.md
 │   └── ...
 │
-├── gtfs/                       ← the eight GTFS source files (CSV, .txt extension)
+├── gtfs/                       ← the GTFS source files (CSV, .txt extension)
 │   ├── agency.txt
 │   ├── feed_info.txt
 │   ├── calendar.txt
@@ -55,7 +50,14 @@ The data flows in three stages — original PDFs, hand-checked markdown transcri
 │   ├── routes.txt
 │   ├── stops.txt
 │   ├── trips.txt
-│   └── stop_times.txt
+│   ├── stop_times.txt
+│   └── shapes.txt              ← hand-traced route geometry (primary path + branch spurs)
+│
+├── scripts/
+│   ├── build_feed.py           ← builds dist/slavonski-brod-gtfs.zip (composes per-trip shapes)
+│   └── validate.sh             ← runs the MobilityData GTFS validator
+│
+├── web/                        ← interactive map viewer, timetable & trip planner
 │
 ├── worksheets/                 ← working files (not part of the feed)
 │   └── stops_TODO.csv          ← worksheet for filling in real stop coordinates
@@ -63,6 +65,11 @@ The data flows in three stages — original PDFs, hand-checked markdown transcri
 └── dist/                       ← build output, gitignored
     └── slavonski-brod-gtfs.zip ← regenerated each release, attached to GitHub Releases
 ```
+
+`gtfs/shapes.txt` holds the hand-traced geometry the map editor saves: one primary
+polyline per route plus detached branch spurs. The build script composes one
+continuous GTFS shape per trip pattern from those pieces — the composed shapes and
+the `shape_id` column on `trips.txt` exist only inside the released zip.
 
 The published `slavonski-brod-gtfs.zip` is **not committed** — it's a build artifact, regenerated on each release and uploaded to GitHub Releases.
 
@@ -79,12 +86,11 @@ The published `slavonski-brod-gtfs.zip` is **not committed** — it's a build ar
 ## Quick start
 
 ```bash
-# Build the feed bundle
-mkdir -p dist
-cd gtfs && zip ../dist/slavonski-brod-gtfs.zip *.txt && cd ..
+# Build the feed bundle (composes per-trip shapes, strips internal markers)
+python3 scripts/build_feed.py
 
 # Validate (requires Java 11+)
-java -jar gtfs-validator-cli.jar -i dist/slavonski-brod-gtfs.zip -o validation_report
+scripts/validate.sh dist/slavonski-brod-gtfs.zip
 ```
 
 See [docs/workflow.md](docs/workflow.md) for the full release flow.

@@ -30,20 +30,21 @@ Whenever something in the schedule changes:
 
 ## Building the zip
 
-The zip must contain the eight `.txt` files **at the root** of the archive — not nested inside a folder. Google rejects feeds with a folder-wrapped layout.
-
 ```bash
-mkdir -p dist
-cd gtfs
-zip ../dist/slavonski-brod-gtfs.zip *.txt
-cd ..
+python3 scripts/build_feed.py
 ```
+
+The script writes `dist/slavonski-brod-gtfs.zip` with all `.txt` files **at the root** of the archive — not nested inside a folder (Google rejects a folder-wrapped layout). It does three things beyond plain zipping:
+
+1. **Composes per-trip shapes.** `gtfs/shapes.txt` holds hand-traced pieces (one primary polyline per route + detached branch spurs, the way the map editor saves them). The script stitches one continuous shape per distinct stop pattern and adds the `shape_id` column to `trips.txt`. Routes with no traced geometry ship without `shape_id`.
+2. **Strips internal markers.** `stop_desc` values containing `PLACEHOLDER` (the coordinate-verification tracker read by `tools/coord_status.py`) are blanked in the zip.
+3. Reports straight-hop fallbacks — hops where no traced piece covers the street — so you can see which segments still need tracing.
 
 Verify the layout:
 
 ```bash
 unzip -l dist/slavonski-brod-gtfs.zip
-# Should list 8 files at the root: agency.txt, calendar.txt, ...
+# Should list 9 files at the root: agency.txt, calendar.txt, ..., shapes.txt
 ```
 
 ---
