@@ -1728,8 +1728,28 @@
       return out.length >= 2 ? out : fallback;
     }
 
+    // Pedestrian routing for walk legs via the public OSRM "foot" profile, so
+    // the dotted walk hugs sidewalks instead of cutting straight. Results are
+    // cached (promise per rounded endpoint pair); on any failure the straight
+    // line drawn first simply stays.
+    const walkCache = {};
+    function walkRoute(a, b) {                    // a, b = [lat, lon]
+      const key = `${a[0].toFixed(5)},${a[1].toFixed(5)};${b[0].toFixed(5)},${b[1].toFixed(5)}`;
+      if (key in walkCache) return walkCache[key];
+      const url = "https://router.project-osrm.org/route/v1/foot/" +
+        `${a[1]},${a[0]};${b[1]},${b[0]}?overview=full&geometries=geojson`;
+      const p = fetch(url).then((r) => (r.ok ? r.json() : null)).then((d) => {
+        if (!d || d.code !== "Ok" || !d.routes || !d.routes.length) return null;
+        return d.routes[0].geometry.coordinates.map(([lon, lat]) => [lat, lon]);
+      }).catch(() => null);
+      walkCache[key] = p;
+      return p;
+    }
+
+    let hlGen = 0;                                // bumped each highlight; async walk routes ignore stale runs
     function highlightItin(it) {
       clearPlannerHighlight();
+      const gen = ++hlGen;
       const bounds = [];
       displayLegs(it).forEach((l) => {
         if (l.kind === "ride") {
@@ -1748,8 +1768,12 @@
           else if (l.dest) { const s = stopById[l.from]; if (s) a = [s.lat, s.lon]; if (ENDP.to.pt) b = [ENDP.to.pt.lat, ENDP.to.pt.lon]; }
           else { const fa = stopById[l.from], fb = stopById[l.to]; if (fa) a = [fa.lat, fa.lon]; if (fb) b = [fb.lat, fb.lon]; }
           if (a && b) {
-            L.polyline([a, b], { color: "#777", weight: 3, dashArray: "4,6" }).addTo(plLayer);
+            // Dotted line, straight at first; upgraded to the footpath when OSRM replies.
+            const wl = L.polyline([a, b], { color: "#5f6368", weight: 4, opacity: 0.9, dashArray: "1,8", lineCap: "round" }).addTo(plLayer);
             bounds.push(a, b);
+            walkRoute(a, b).then((geom) => {
+              if (gen === hlGen && geom && geom.length >= 2) wl.setLatLngs(geom);
+            });
           }
         }
       });
