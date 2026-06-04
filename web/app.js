@@ -1211,6 +1211,38 @@
       return out;
     }
 
+    // "Arrive by": journeys reaching the destination no later than arrSec, the
+    // latest-departing first. The forward planner gives the earliest arrival for
+    // a given departure, so we walk forward from a window start, collecting every
+    // distinct journey that still arrives by arrSec, and keep the latest n. (A
+    // backward step from one journey's boarding just re-catches the same bus, so
+    // forward-collect is what surfaces the earlier alternatives.)
+    function planTopArrive(fromPt, toPt, arrSec, ymd, n = 3) {
+      const MAX_J = 4 * 3600;                       // assume no useful trip is >4h
+      const arrAt = (d) => { const j = planPoints(fromPt, toPt, d, ymd); return j ? j.arr : Infinity; };
+      // Each option is the LATEST departure whose arrival ≤ target — the real
+      // point of "arrive by". Earliest arrival is monotonic non-decreasing in
+      // departure, so that departure is a binary search. For the next option we
+      // drop the target just below this arrival, giving distinct, each-optimal
+      // options ordered latest arrival (latest departure) first.
+      const out = [];
+      let target = arrSec;
+      for (let k = 0; k < n; k++) {
+        let lo = Math.max(0, target - MAX_J), hi = target, depStar = -1;
+        if (arrAt(lo) > target) break;              // nothing arrives this early
+        while (lo <= hi) {
+          const mid = (lo + hi) >> 1;
+          if (arrAt(mid) <= target) { depStar = mid; lo = mid + 1; } else hi = mid - 1;
+        }
+        if (depStar < 0) break;
+        const j = planPoints(fromPt, toPt, depStar, ymd);
+        if (!j) break;
+        out.push(j);
+        target = j.arr - 1;                         // next option arrives strictly earlier
+      }
+      return out;
+    }
+
     // ---- Production UI: planner + timetable ----------------------------------
     let prodInited = false;
     const plLayer = L.layerGroup().addTo(map);
@@ -1386,12 +1418,10 @@
       };
       ttLine.onchange = renderTimetable;
       document.getElementById("tt-date").onchange = renderTimetable;
-      // Time-mode segmented control. "Arrive by" lands in P2.2 — disabled for now.
+      // Time-mode segmented control: leave now / depart at / arrive by.
       document.getElementById("tm-now").onclick = () => { setTimeMode("now"); runPlanner(); };
       document.getElementById("tm-depart").onclick = () => setTimeMode("depart");
-      const arriveBtn = document.getElementById("tm-arrive");
-      arriveBtn.disabled = true;
-      arriveBtn.title = "Uskoro";
+      document.getElementById("tm-arrive").onclick = () => setTimeMode("arrive");
       setTimeMode("now");
       renderTimetable();
     }
@@ -1402,20 +1432,28 @@
         box.innerHTML = '<p class="muted">Odaberi polazak i odredište — upiši adresu, klikni 📌 i točku na karti, ili 📍 GPS.</p>';
         clearPlannerHighlight(); return;
       }
-      // "Sada" (leave now) reads the clock and syncs the pickers; "Polazak u"
-      // uses whatever's in the pickers.
+      // "Sada" (leave now) reads the clock and syncs the pickers; "Polazak u" /
+      // "Dolazak do" use whatever's in the pickers.
       if (timeMode === "now") {
         const now = new Date(), pad = (n) => String(n).padStart(2, "0");
         document.getElementById("pl-time").value = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
       }
       const ymd = document.getElementById("pl-date").value.replaceAll("-", "");
       const [hh, mm] = document.getElementById("pl-time").value.split(":").map(Number);
-      renderItins(planTopPoints(ENDP.from.pt, ENDP.to.pt, hh * 3600 + mm * 60, ymd, 3));
+      const sec = hh * 3600 + mm * 60;
+      const itins = timeMode === "arrive"
+        ? planTopArrive(ENDP.from.pt, ENDP.to.pt, sec, ymd, 3)
+        : planTopPoints(ENDP.from.pt, ENDP.to.pt, sec, ymd, 3);
+      renderItins(itins);
     }
 
     function renderItins(itins) {
       const box = document.getElementById("pl-results");
-      if (!itins || !itins.length) { box.innerHTML = '<p class="muted">Nema pronađene vožnje za to vrijeme.</p>'; clearPlannerHighlight(); return; }
+      if (!itins || !itins.length) {
+        box.innerHTML = `<p class="muted">${timeMode === "arrive"
+          ? "Nema vožnje koja stiže do tog vremena." : "Nema pronađene vožnje za to vrijeme."}</p>`;
+        clearPlannerHighlight(); return;
+      }
       box.innerHTML = "";
       itins.forEach((it, idx) => {
         const legs = displayLegs(it);
