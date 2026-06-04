@@ -1419,29 +1419,100 @@
       box.innerHTML = "";
       itins.forEach((it, idx) => {
         const legs = displayLegs(it);
-        const rides = legs.filter((l) => l.kind === "ride").length;
+        const rides = legs.filter((l) => l.kind === "ride");
         const arrT = legs[legs.length - 1].arr;
         const dur = Math.round((arrT - legs[0].dep) / 60);
+        const walkMin = Math.round(legs.filter((l) => l.kind === "walk")
+          .reduce((s, l) => s + (l.arr - l.dep), 0) / 60);
         const div = document.createElement("div");
-        div.className = "itin" + (idx === 0 ? " sel" : "");
-        const legsHtml = legs.map((l) => {
-          if (l.kind === "walk") {
-            const min = Math.max(1, Math.round((l.arr - l.dep) / 60));
-            if (l.origin) return `<div class="leg walk">🚶 ${fmtT(l.dep)} hod ${min} min do ${stopName(l.to)}</div>`;
-            if (l.dest) return `<div class="leg walk">🚶 hod ${min} min do cilja → ${fmtT(l.arr)}</div>`;
-            return `<div class="leg walk">🚶 hod ${min} min → ${stopName(l.to)}</div>`;
-          }
-          const m = routeMeta(l.rid);
-          return `<div class="leg"><span class="badge" style="background:${m.color}">${m.short_name}</span>${fmtT(l.dep)} ${stopName(l.from)} → ${fmtT(l.arr)} ${stopName(l.to)}</div>`;
-        }).join("");
-        div.innerHTML = `<div class="head"><b>${fmtT(legs[0].dep)} – ${fmtT(arrT)}</b><span>${dur} min · ${Math.max(0, rides - 1)} presj.</span></div>${legsHtml}`;
-        div.addEventListener("click", () => {
-          document.querySelectorAll(".itin").forEach((e) => e.classList.remove("sel"));
-          div.classList.add("sel"); highlightItin(it);
+        div.className = "itin" + (idx === 0 ? " sel open" : "");
+
+        // Collapsed summary: ride badges + walk glyphs joined by chevrons.
+        const pills = legs
+          .filter((l) => l.kind === "ride" || (l.kind === "walk" && !l.origin && !l.dest))
+          .map((l) => l.kind === "ride"
+            ? `<span class="badge" style="background:${routeMeta(l.rid).color}">${routeMeta(l.rid).short_name}</span>`
+            : `<span class="itin-walk">🚶</span>`)
+          .join('<span class="itin-arrow">›</span>') || '<span class="itin-walk">🚶</span>';
+        const transfers = Math.max(0, rides.length - 1);
+        const sub = `<div class="itin-sub">${pills}<span class="itin-chip">· ${transfers} presj.` +
+          `${walkMin ? ` · ${walkMin} min hoda` : ""}</span></div>`;
+
+        div.innerHTML =
+          `<div class="itin-head"><span class="times">${fmtT(legs[0].dep)} – ${fmtT(arrT)}</span>` +
+          `<span class="dur">${dur} min</span></div>` + sub +
+          `<div class="itin-steps">${stepsHtml(legs)}</div>`;
+
+        div.querySelector(".itin-head").addEventListener("click", () => selectItin(div, it));
+        div.querySelector(".itin-sub").addEventListener("click", () => selectItin(div, it));
+        div.querySelectorAll(".step.conn").forEach((row) => {
+          row.addEventListener("click", (e) => { if (!e.target.closest(".step-more")) panToLeg(legs[+row.dataset.leg]); });
         });
+        div.querySelectorAll(".step-more").forEach((b) => b.addEventListener("click", (e) => {
+          e.stopPropagation(); b.classList.toggle("open"); b.nextElementSibling.classList.toggle("open");
+        }));
         box.appendChild(div);
       });
       highlightItin(itins[0]);
+    }
+
+    function selectItin(div, it) {
+      document.querySelectorAll(".itin").forEach((e) => e.classList.remove("sel", "open"));
+      div.classList.add("sel", "open");
+      highlightItin(it);
+    }
+
+    // Stops travelled on a ride leg: hop count + intermediate stop names + headsign.
+    function rideStops(l) {
+      const t = tripById(l.trip);
+      if (!t) return { count: 1, between: [], headsign: "" };
+      let bi = t.stops.findIndex((s) => s[0] === l.from && s[2] === l.dep);
+      let ai = t.stops.findIndex((s) => s[0] === l.to && s[1] === l.arr);
+      if (bi < 0) bi = t.stops.findIndex((s) => s[0] === l.from);
+      if (ai < 0) ai = t.stops.findIndex((s, i) => i > bi && s[0] === l.to);
+      const between = (bi >= 0 && ai > bi) ? t.stops.slice(bi + 1, ai).map((s) => stopName(s[0])) : [];
+      return { count: Math.max(1, ai - bi), between, headsign: t.headsign || "" };
+    }
+
+    // Vertical step-by-step timeline for one itinerary (Google-style).
+    function stepsHtml(legs) {
+      const stops = (n) => `${n} ${n === 1 ? "stajalište" : (n < 5 ? "stajališta" : "stajališta")}`;
+      const node = (color, time, title, note) =>
+        `<div class="step node" style="color:${color}"><div class="step-gutter"><span class="dot"></span></div>` +
+        `<div class="step-body"><span class="when">${time}</span>${title}` +
+        `${note ? `<div class="step-note">${note}</div>` : ""}</div></div>`;
+      const walkConn = (i, txt) =>
+        `<div class="step conn walk" style="color:#9aa0a6" data-leg="${i}"><div class="step-gutter"></div>` +
+        `<div class="step-body">🚶 ${txt}</div></div>`;
+      const rideConn = (i, l) => {
+        const m = routeMeta(l.rid), rm = rideStops(l);
+        const ride = rm.between.length
+          ? `<span class="step-more">${stops(rm.count)} ⌄</span><div class="step-inter">${rm.between.join(" · ")}</div>`
+          : stops(rm.count);
+        return `<div class="step conn ride" style="color:${m.color}" data-leg="${i}"><div class="step-gutter"></div>` +
+          `<div class="step-body"><span class="badge" style="background:${m.color}">${m.short_name}</span>` +
+          `${rm.headsign ? ` prema ${rm.headsign}` : ""}<div class="step-note">${ride}</div></div></div>`;
+      };
+      const rows = [node("#198754", fmtT(legs[0].dep), "Polazak", ENDP.from.label || "")];
+      legs.forEach((l, i) => {
+        if (l.kind === "walk") {
+          const min = Math.max(1, Math.round((l.arr - l.dep) / 60));
+          rows.push(walkConn(i, l.origin ? `Hodaj ${min} min do stajališta`
+            : l.dest ? `Hodaj ${min} min do cilja` : `Presjedanje — hodaj ${min} min`));
+        } else {
+          const c = routeMeta(l.rid).color;
+          rows.push(node(c, fmtT(l.dep), stopName(l.from)), rideConn(i, l), node(c, fmtT(l.arr), stopName(l.to)));
+        }
+      });
+      rows.push(node("#c0392b", fmtT(legs[legs.length - 1].arr), "Cilj", ENDP.to.label || ""));
+      return rows.join("");
+    }
+
+    // Zoom the map to a single leg's geometry (road path for rides).
+    function panToLeg(l) {
+      let pts = l.kind === "ride" ? rideRoadSeg(l) : null;
+      if (!pts) { const a = stopById[l.from], b = stopById[l.to]; if (a && b) pts = [[a.lat, a.lon], [b.lat, b.lon]]; }
+      if (pts && pts.length >= 2) map.fitBounds(pts, fitOpts());
     }
 
     // The road-following geometry for a ride leg: slice the line's drawn polyline
@@ -1530,14 +1601,15 @@
       });
       if (ENDP.from.pt) bounds.push([ENDP.from.pt.lat, ENDP.from.pt.lon]);
       if (ENDP.to.pt) bounds.push([ENDP.to.pt.lat, ENDP.to.pt.lon]);
-      // In Production on desktop the left sidebar overlays the map, so pad the
-      // fit on the left by its width to keep the route clear of it.
+      if (bounds.length) map.fitBounds(bounds, fitOpts());
+    }
+    // Fit options that keep content clear of the desktop sidebar in Production:
+    // it overlays the map's left edge, so pad the fit on the left by its width.
+    function fitOpts() {
       const sbW = (appMode === "prod" && window.innerWidth > 640)
         ? (parseInt(getComputedStyle(document.documentElement).getPropertyValue("--gm-w")) || 392) + 24
         : 50;
-      if (bounds.length) map.fitBounds(bounds, {
-        paddingTopLeft: [sbW, 60], paddingBottomRight: [60, 60], maxZoom: 16,
-      });
+      return { paddingTopLeft: [sbW, 60], paddingBottomRight: [60, 60], maxZoom: 16 };
     }
 
     function renderTimetable() {

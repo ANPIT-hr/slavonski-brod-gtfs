@@ -204,3 +204,37 @@
       body.mode-prod #mode-toggle { left: auto; right: 12px; }
       body.mode-prod .leaflet-top.leaflet-left { margin-left: calc(var(--gm-w) + 12px); }
     }
+
+    /* ---- Itinerary cards + step-by-step timeline (Production results) ---- */
+    .itin { border: 1px solid #e3e3e3; border-radius: 10px; padding: 12px 14px; margin: 8px 0; background: #fff; }
+    .itin:hover { box-shadow: 0 1px 6px rgba(0,0,0,.12); }
+    .itin.sel { border-color: var(--gm-blue); }
+    .itin-head { display: flex; justify-content: space-between; align-items: baseline; cursor: pointer; }
+    .itin-head .times { font-weight: 600; font-size: 15px; color: #202124; }
+    .itin-head .dur { font-size: 13px; color: #5f6368; white-space: nowrap; margin-left: 8px; }
+    .itin-sub { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; margin-top: 8px; cursor: pointer; }
+    .itin-arrow { color: #9aa0a6; font-size: 13px; }
+    .itin-chip { font-size: 12px; color: #5f6368; }
+    .itin-walk { font-size: 13px; }
+    .badge { color: #fff; border-radius: 5px; padding: 2px 7px; font-weight: 700; font-size: 12px;
+      display: inline-block; line-height: 1.35; }
+    .itin-steps { display: none; margin-top: 10px; }
+    .itin.open .itin-steps { display: block; }
+    .itin.open .itin-sub { display: none; }
+    .step { display: grid; grid-template-columns: 26px 1fr; gap: 8px; }
+    .step-gutter { display: flex; justify-content: center; align-items: stretch; }
+    .step.node .dot { width: 12px; height: 12px; border-radius: 50%; background: currentColor;
+      box-shadow: 0 0 0 2px #fff, 0 0 0 4px currentColor; margin-top: 4px; }
+    .step.conn .step-gutter::before { content: ""; width: 4px; border-radius: 2px;
+      background: currentColor; margin: 1px 0; }
+    .step.conn.walk .step-gutter::before { width: 3px;
+      background: repeating-linear-gradient(currentColor 0 2px, transparent 2px 6px); }
+    .step.conn { cursor: pointer; }
+    .step.conn:hover .step-body { color: var(--gm-blue); }
+    .step-body { font-size: 13px; color: #202124; padding: 1px 0 10px; min-width: 0; }
+    .step.node .step-body { font-weight: 600; }
+    .step .when { color: #5f6368; font-weight: 400; margin-right: 8px; }
+    .step-note { font-weight: 400; color: #5f6368; font-size: 12.5px; margin-top: 3px; }
+    .step-more { color: var(--gm-blue); cursor: pointer; }
+    .step-inter { display: none; color: #5f6368; font-size: 12.5px; margin-top: 4px; line-height: 1.5; }
+    .step-inter.open { display: block; }
