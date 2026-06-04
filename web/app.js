@@ -1158,20 +1158,15 @@
     modeDevBtn.addEventListener("click", () => applyMode("dev"));
     modeProdBtn.addEventListener("click", () => applyMode("prod"));
 
-    // Development mode is hidden from riders: the "Razvoj" tab only appears after
-    // a hidden gesture — three quick taps on "Produkcija". It also shows
-    // automatically when we're already in dev (e.g. a ?mode=dev deep link), so the
-    // active tab is never invisible. Stays revealed for the session.
-    modeDevBtn.style.display = "none";
-    function revealDev() { modeDevBtn.style.display = ""; }
-    if (appMode === "dev") revealDev();
-    let _devTaps = 0, _devTapTimer = null;
-    modeProdBtn.addEventListener("click", () => {
-      _devTaps++;
-      clearTimeout(_devTapTimer);
-      _devTapTimer = setTimeout(() => { _devTaps = 0; }, 700);
-      if (_devTaps >= 3) { _devTaps = 0; revealDev(); }
-    });
+    // The mode switcher is hidden from riders entirely. It is revealed by a hidden
+    // gesture — three quick taps on the "Pronađi vožnju" button while it's empty
+    // (see initProdUI). Once revealed, Produkcija | Razvoj let you switch (and
+    // back). It also auto-reveals when we're already in dev (e.g. a ?mode=dev deep
+    // link) so you're never stuck. Stays revealed for the session.
+    const modeToggle = document.getElementById("mode-toggle");
+    modeToggle.style.display = "none";
+    function revealModes() { modeToggle.style.display = ""; }
+    if (appMode === "dev") revealModes();
 
     // ---- Lazy-load schedule.js the first time Production is opened -----------
     let SCH = null, schedState = "idle";       // idle | loading | ready | error
@@ -1613,7 +1608,19 @@
           ? " " + (line.headsign || "smjer " + line.direction_id) : "";
         ttLine.add(new Option(meta.short_name + dir, key));
       });
-      document.getElementById("pl-go").onclick = runPlanner;
+      // Pressing "Pronađi vožnju" searches; three quick presses while no
+      // origin/destination is set is the hidden gesture that reveals the mode
+      // switcher (Produkcija | Razvoj). Real searches (endpoints set) never count.
+      let _goTaps = 0, _goTimer = null;
+      document.getElementById("pl-go").onclick = () => {
+        runPlanner();
+        if (!ENDP.from.pt || !ENDP.to.pt) {
+          _goTaps++;
+          clearTimeout(_goTimer);
+          _goTimer = setTimeout(() => { _goTaps = 0; }, 700);
+          if (_goTaps >= 3) { _goTaps = 0; revealModes(); }
+        } else { _goTaps = 0; }
+      };
       document.getElementById("pl-from-search").onclick = () => runSearch("from");
       document.getElementById("pl-to-search").onclick = () => runSearch("to");
       ["from", "to"].forEach((w) => {
