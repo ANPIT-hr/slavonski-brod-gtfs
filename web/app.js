@@ -52,9 +52,10 @@
       const tt = document.getElementById("tt-sec"), ls = document.getElementById("lines-sec");
       if (tt) tt.open = true; if (ls) ls.open = true;   // details act as tab panels here
     }
-    const PEEK_VISIBLE = 132;
+    const PEEK_VISIBLE = 78;     // resting peek shows just the handle + tab strip
     // translateY (px) for each detent. "full" stops just below the floating
-    // search card (so the sheet never slides under it); "peek" shows ~132px.
+    // search card (so the sheet never slides under it); "peek" shows ~78px
+    // (just the handle + tab strip) so the map stays in focus.
     function detentY(d) {
       const vh = window.innerHeight;
       const Hs = _panel.getBoundingClientRect().height || vh * 0.92;

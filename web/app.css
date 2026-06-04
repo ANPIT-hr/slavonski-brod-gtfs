@@ -299,11 +299,11 @@
         border-radius: 16px 16px 0 0; box-shadow: 0 -3px 18px rgba(0,0,0,.28);
         background: #fff; overflow: hidden;
         display: flex; flex-direction: column;
-        transform: translateY(calc(92vh - 132px));     /* default detent: peek */
+        transform: translateY(calc(92vh - 78px));     /* default detent: peek (handle + tabs only) */
         transition: transform .26s cubic-bezier(.4,0,.2,1);
       }
       body.mode-prod #panel::before { content: none; }  /* explicit handle instead */
-      body.mode-prod #panel.sheet-peek { transform: translateY(calc(92vh - 132px)); }
+      body.mode-prod #panel.sheet-peek { transform: translateY(calc(92vh - 78px)); }
       body.mode-prod #panel.sheet-half { transform: translateY(46vh); }
       body.mode-prod #panel.sheet-full { transform: translateY(0); }
       body.mode-prod #panel.dragging { transition: none; }
