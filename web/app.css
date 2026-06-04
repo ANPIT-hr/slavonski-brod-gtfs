@@ -263,3 +263,87 @@
       padding: 6px 0; border-top: 1px solid #f0f0f0; font-size: 13px; }
     .board-row .when { font-weight: 600; color: #202124; font-variant-numeric: tabular-nums; }
     .board-row .dest { color: #5f6368; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* ====================================================================
+       Mobile Production — Google-Maps layout: full-screen map, a floating
+       search card + mode toggle on top, and a draggable bottom sheet whose
+       tabs (Vožnje / Vozni red / Linije) can expand to fill the screen.
+       Scoped to body.mode-prod so Development keeps the simple slide-up panel
+       and desktop keeps the left sidebar.
+       ==================================================================== */
+    #m-handle, #m-tabs, #m-topbar { display: none; }
+    @media (max-width: 640px) {
+      /* no "open menu" button — the sheet is always present at the bottom */
+      body.mode-prod #panel-toggle { display: none; }
+      body.mode-prod #panel > h2 { display: none; }
+      /* declutter the map: pinch to zoom, base layer stays for Development only */
+      body.mode-prod .leaflet-control-zoom,
+      body.mode-prod .leaflet-control-layers { display: none; }
+
+      /* search card floats at the top, over the map, below the mode toggle. JS
+         relocates it into #m-topbar — a viewport-fixed container OUTSIDE the
+         transformed sheet, so fixed positioning resolves against the viewport. */
+      body.mode-prod #m-topbar {
+        display: block; position: fixed; z-index: 1100;
+        top: calc(58px + env(safe-area-inset-top)); left: 8px; right: 8px;
+      }
+      body.mode-prod #m-topbar .gm-card {
+        position: static; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,.25);
+        padding: 10px 12px; border-bottom: none; background: #fff;
+      }
+
+      /* the panel becomes a draggable bottom sheet */
+      body.mode-prod #panel {
+        top: auto; bottom: 0; left: 0; right: 0; width: auto;
+        height: 92vh; max-height: 92vh; padding: 0;
+        border-radius: 16px 16px 0 0; box-shadow: 0 -3px 18px rgba(0,0,0,.28);
+        background: #fff; overflow: hidden;
+        display: flex; flex-direction: column;
+        transform: translateY(calc(92vh - 132px));     /* default detent: peek */
+        transition: transform .26s cubic-bezier(.4,0,.2,1);
+      }
+      body.mode-prod #panel::before { content: none; }  /* explicit handle instead */
+      body.mode-prod #panel.sheet-peek { transform: translateY(calc(92vh - 132px)); }
+      body.mode-prod #panel.sheet-half { transform: translateY(46vh); }
+      body.mode-prod #panel.sheet-full { transform: translateY(0); }
+      body.mode-prod #panel.dragging { transition: none; }
+
+      body.mode-prod #prod-tools {
+        flex: 1; min-height: 0; padding: 0;
+        display: flex; flex-direction: column; overflow: hidden;
+      }
+
+      /* drag handle + tab strip (the fixed top of the sheet) */
+      body.mode-prod #m-handle { display: block; flex: none; padding: 9px 0 5px; cursor: grab; touch-action: none; }
+      body.mode-prod #m-handle::before {
+        content: ""; display: block; width: 40px; height: 4px; border-radius: 2px; background: #ccc; margin: 0 auto;
+      }
+      body.mode-prod #m-tabs {
+        display: flex; flex: none; gap: 4px; padding: 2px 10px 8px; border-bottom: 1px solid #eee;
+      }
+      body.mode-prod #m-tabs button {
+        flex: 1; border: none; background: transparent; padding: 9px 6px; border-radius: 8px; min-height: 0;
+        font: 600 13px system-ui, sans-serif; color: #5f6368; cursor: pointer;
+      }
+      body.mode-prod #m-tabs button.active { background: #e8f0fe; color: var(--gm-blue); }
+
+      /* the active tab's content scrolls inside the sheet */
+      body.mode-prod #pl-results, body.mode-prod #stop-board,
+      body.mode-prod #tt-sec, body.mode-prod #lines-sec {
+        overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 8px 14px; margin: 0;
+      }
+      body.mode-prod #tt-sec, body.mode-prod #lines-sec { border: none; flex: 1; min-height: 0; }
+      body.mode-prod #tt-sec > summary, body.mode-prod #lines-sec > summary { display: none; }
+      body.mode-prod #pl-results { flex: 1; }
+      body.mode-prod #pl-results:empty { display: block; }   /* keep the hint/results area scrollable */
+
+      /* tab visibility (body carries the active tab) */
+      body.mode-prod.mtab-planer  #tt-sec,
+      body.mode-prod.mtab-planer  #lines-sec { display: none; }
+      body.mode-prod.mtab-voznired #pl-results,
+      body.mode-prod.mtab-voznired #stop-board,
+      body.mode-prod.mtab-voznired #lines-sec { display: none; }
+      body.mode-prod.mtab-linije  #pl-results,
+      body.mode-prod.mtab-linije  #stop-board,
+      body.mode-prod.mtab-linije  #tt-sec { display: none; }
+    }

@@ -15,6 +15,7 @@
     <button id="mode-dev" type="button">Razvoj</button>
   </div>
   <button id="panel-toggle" aria-label="Otvori izbornik">☰ Izbornik</button>
+  <div id="m-topbar"></div><!-- mobile Production: search card is moved here, above the sheet -->
   <div id="panel">
     <h2>Gradski prijevoz<button id="panel-close" aria-label="Zatvori">✕</button></h2>
 
@@ -57,6 +58,12 @@
           <input id="pl-time" type="time" style="flex:1">
         </div>
         <button id="pl-go" class="gm-go" type="button">Pronađi vožnju</button>
+      </div>
+      <div id="m-handle" aria-hidden="true"></div>
+      <div id="m-tabs" role="tablist" aria-label="Prikaz">
+        <button type="button" data-mtab="planer" role="tab" class="active">Vožnje</button>
+        <button type="button" data-mtab="voznired" role="tab">Vozni red</button>
+        <button type="button" data-mtab="linije" role="tab">Linije</button>
       </div>
       <div id="stop-board" class="gm-board" role="region" aria-label="Polasci sa stajališta" hidden></div>
       <div id="pl-results" class="gm-results" role="region" aria-live="polite" aria-label="Rezultati pretrage"></div>

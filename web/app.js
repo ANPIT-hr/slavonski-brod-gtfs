@@ -32,7 +32,102 @@
       else refreshSheetLabel();
     }
     syncMode();
-    _mqMobile.addEventListener("change", syncMode);
+    _mqMobile.addEventListener("change", () => { syncMode(); syncMSheet(); });
+
+    // ---- Mobile Production bottom sheet: detents (peek/half/full) + drag + tabs.
+    // Active only on phones in Production; otherwise the sheet classes are cleared
+    // so the desktop sidebar / dev slide-up panel behave as before.
+    const _mHandle = document.getElementById("m-handle");
+    const _mTabs = document.getElementById("m-tabs");
+    let _detent = "peek";
+    const mSheetActive = () => _mqMobile.matches && document.body.classList.contains("mode-prod");
+    function setMTab(name) {
+      document.body.classList.remove("mtab-planer", "mtab-voznired", "mtab-linije");
+      document.body.classList.add("mtab-" + name);
+      if (_mTabs) [..._mTabs.children].forEach((btn) => {
+        const on = btn.dataset.mtab === name;
+        btn.classList.toggle("active", on);
+        btn.setAttribute("aria-selected", on ? "true" : "false");
+      });
+      const tt = document.getElementById("tt-sec"), ls = document.getElementById("lines-sec");
+      if (tt) tt.open = true; if (ls) ls.open = true;   // details act as tab panels here
+    }
+    const PEEK_VISIBLE = 132;
+    // translateY (px) for each detent. "full" stops just below the floating
+    // search card (so the sheet never slides under it); "peek" shows ~132px.
+    function detentY(d) {
+      const vh = window.innerHeight;
+      const Hs = _panel.getBoundingClientRect().height || vh * 0.92;
+      const base = vh - Hs;                        // sheet top when translateY = 0
+      const cardBottom = (_mTopbar && _mTopbar.getBoundingClientRect().height)
+        ? _mTopbar.getBoundingClientRect().bottom + 8 : 250;
+      const top = { full: cardBottom, half: vh * 0.5, peek: vh - PEEK_VISIBLE }[d];
+      return Math.max(0, Math.round(top - base));
+    }
+    function setDetent(d) {
+      _detent = d;
+      _panel.classList.remove("sheet-peek", "sheet-half", "sheet-full");
+      _panel.classList.add("sheet-" + d);
+      _panel.style.transform = `translateY(${detentY(d)}px)`;
+    }
+    function sheetReveal() { if (mSheetActive() && _detent === "peek") setDetent("half"); }
+    // The search card lives at the top of the desktop sidebar but, on mobile,
+    // must sit in #m-topbar (outside the transformed sheet) so it floats fixed at
+    // the top of the screen. Move the same node between the two homes.
+    const _mTopbar = document.getElementById("m-topbar");
+    function placeSearch() {
+      const card = document.querySelector(".gm-card"), prod = document.getElementById("prod-tools");
+      if (!card || !prod || !_mTopbar) return;
+      if (mSheetActive()) { if (card.parentNode !== _mTopbar) _mTopbar.appendChild(card); }
+      else if (card.parentNode !== prod) prod.insertBefore(card, prod.firstChild);
+    }
+    function syncMSheet() {
+      placeSearch();
+      if (mSheetActive()) {
+        if (!/sheet-(peek|half|full)/.test(_panel.className)) setDetent("peek");
+        const cur = [...document.body.classList].find((c) => c.indexOf("mtab-") === 0);
+        setMTab(cur ? cur.slice(5) : "planer");   // (re)apply tab; also re-opens the <details> panels
+      } else {
+        _panel.classList.remove("sheet-peek", "sheet-half", "sheet-full", "dragging");
+        _panel.style.transform = "";
+      }
+    }
+    if (_mTabs) _mTabs.addEventListener("click", (e) => {
+      const btn = e.target.closest("button[data-mtab]");
+      if (btn) { setMTab(btn.dataset.mtab); if (_detent === "peek") setDetent("half"); }
+    });
+    if (_mHandle) {
+      let dragging = false, startY = 0, startTY = 0, lastY = 0;
+      const px = () => ({ full: detentY("full"), half: detentY("half"), peek: detentY("peek") });
+      const down = (e) => {
+        if (!mSheetActive()) return;
+        dragging = true; startY = lastY = e.clientY; startTY = detentY(_detent);
+        _panel.classList.add("dragging");
+        try { _mHandle.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+      };
+      const move = (e) => {
+        if (!dragging) return;
+        lastY = e.clientY;
+        const p = px();
+        _panel.style.transform = `translateY(${Math.min(p.peek, Math.max(p.full, startTY + (lastY - startY)))}px)`;
+        if (e.cancelable) e.preventDefault();
+      };
+      const up = () => {
+        if (!dragging) return;
+        dragging = false; _panel.classList.remove("dragging");
+        if (Math.abs(lastY - startY) < 8) {                 // tap → cycle open
+          setDetent(_detent === "peek" ? "half" : _detent === "half" ? "full" : "peek");
+        } else {
+          const p = px(), ty = startTY + (lastY - startY);
+          setDetent([["full", p.full], ["half", p.half], ["peek", p.peek]]
+            .sort((a, b) => Math.abs(a[1] - ty) - Math.abs(b[1] - ty))[0][0]);
+        }
+      };
+      _mHandle.addEventListener("pointerdown", down);
+      _mHandle.addEventListener("pointermove", move);
+      _mHandle.addEventListener("pointerup", up);
+    }
+    window.addEventListener("resize", () => { if (mSheetActive()) setDetent(_detent); });
 
     const street = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19,
@@ -1046,6 +1141,7 @@
       }
       updateProdStops();             // show/hide the tappable stops layer per mode
       refreshSheetLabel();           // mobile entry button reflects the mode
+      syncMSheet();                  // set up / tear down the mobile bottom sheet
     }
     // "Linije na karti" is shared by both modes. In Production it lives at the
     // bottom of the scrolling sidebar (inside #prod-tools); in Development it
@@ -1623,6 +1719,7 @@
         box.appendChild(div);
       });
       highlightItin(itins[0]);
+      if (mSheetActive()) { setMTab("planer"); sheetReveal(); }   // surface results on mobile
     }
 
     function selectItin(div, it) {
@@ -1982,6 +2079,7 @@
         `<div class="board-sub">Sljedeći polasci${upcoming.length ? "" : " (cijeli dan)"}</div>` +
         `<div class="board-rows">${rows}</div>`;
       el.querySelector(".board-close").onclick = closeStopBoard;
+      if (mSheetActive()) { setMTab("planer"); sheetReveal(); }   // board lives in the Vožnje tab
       const s = stopById[stopId];
       if (s) map.panTo([s.lat, s.lon]);
     }
