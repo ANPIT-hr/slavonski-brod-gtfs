@@ -1037,7 +1037,9 @@
         clearPlannerHighlight();
         setPinMode(null);            // drop any pending pin-on-map state
         ovVisible(ovOn.checked);     // restore overlay per its checkbox
+        closeStopBoard();            // departure board is Production-only
       }
+      updateProdStops();             // show/hide the tappable stops layer per mode
     }
     // "Linije na karti" is shared by both modes. In Production it lives at the
     // bottom of the scrolling sidebar (inside #prod-tools); in Development it
@@ -1775,6 +1777,77 @@
         html += `<tr><td>${stopName(sid)}</td>` + cols.map((c) => `<td>${c[ri]}</td>`).join("") + "</tr>";
       });
       box.innerHTML = html + "</tbody></table></div>";
+    }
+
+    // ---- Production: tappable stops + departure boards -----------------------
+    // Lines are hidden by default, so riders need a way to tap a stop. A light
+    // stops layer shows in Production once zoomed in (≥ 14); tapping a stop opens
+    // a "next departures" board in the sidebar.
+    const prodStops = L.layerGroup();
+    let prodStopsBuilt = false, prodStopsOn = false, boardStop = null;
+    function buildProdStops() {
+      if (prodStopsBuilt) return; prodStopsBuilt = true;
+      D.stops.forEach((s) => {
+        const m = L.circleMarker([s.lat, s.lon], {
+          radius: 5, color: "#1a73e8", weight: 2, fillColor: "#fff", fillOpacity: 1,
+        });
+        m.bindTooltip(s.name, { direction: "top" });
+        m.on("click", () => openStopBoard(s.id));
+        prodStops.addLayer(m);
+      });
+    }
+    function updateProdStops() {
+      const want = appMode === "prod" && map.getZoom() >= 14;
+      if (want && !prodStopsOn) { buildProdStops(); prodStops.addTo(map); prodStopsOn = true; }
+      else if (!want && prodStopsOn) { map.removeLayer(prodStops); prodStopsOn = false; }
+    }
+    map.on("zoomend", updateProdStops);
+
+    function closeStopBoard() {
+      boardStop = null;
+      const el = document.getElementById("stop-board");
+      if (el) { el.hidden = true; el.innerHTML = ""; }
+    }
+    // Next departures from a stop, across all lines, for the planner's selected
+    // day — starting "now" when that day is today, else from the day's start.
+    function openStopBoard(stopId) {
+      const el = document.getElementById("stop-board");
+      if (!el) return;
+      if (!SCH) { el.hidden = false; el.innerHTML = '<p class="muted">Učitavam vozni red…</p>'; ensureSchedule(); return; }
+      boardStop = stopId;
+      const ymd = (document.getElementById("pl-date").value || "").replaceAll("-", "");
+      const active = servicesForDate(ymd);
+      const now = new Date(), pad = (n) => String(n).padStart(2, "0");
+      const todayYmd = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}`;
+      const fromSec = ymd === todayYmd ? now.getHours() * 3600 + now.getMinutes() * 60 : 0;
+
+      const deps = [];
+      for (const t of SCH.trips) {
+        if (!active.has(t.service_id)) continue;
+        for (const st of t.stops) {
+          if (st[0] === stopId && st[2] != null) deps.push({ dep: st[2], rid: t.route_id, headsign: t.headsign });
+        }
+      }
+      deps.sort((a, b) => a.dep - b.dep);
+      const upcoming = deps.filter((d) => d.dep >= fromSec);
+      const list = (upcoming.length ? upcoming : deps).slice(0, 12);
+      const rows = list.length
+        ? list.map((d) => {
+            const m = routeMeta(d.rid);
+            return `<div class="board-row"><span class="when">${fmtT(d.dep)}</span>` +
+              `<span class="badge" style="background:${m.color}">${m.short_name}</span>` +
+              `<span class="dest">${d.headsign || ""}</span></div>`;
+          }).join("")
+        : '<p class="muted">Nema polazaka za taj dan.</p>';
+      el.hidden = false;
+      el.innerHTML =
+        `<div class="board-head"><b>${stopName(stopId)}</b>` +
+        `<button class="board-close" aria-label="Zatvori">✕</button></div>` +
+        `<div class="board-sub">Sljedeći polasci${upcoming.length ? "" : " (cijeli dan)"}</div>` +
+        `<div class="board-rows">${rows}</div>`;
+      el.querySelector(".board-close").onclick = closeStopBoard;
+      const s = stopById[stopId];
+      if (s) map.panTo([s.lat, s.lon]);
     }
 
     applyMode(appMode);   // set initial mode (loads schedule if Production)
