@@ -1,5 +1,6 @@
-    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
-    #map { position: absolute; inset: 0; }
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif;
+      overflow: hidden; overscroll-behavior: none; }
+    #map { position: absolute; inset: 0; touch-action: none; }
     #panel {
       position: absolute; top: 12px; right: 12px; z-index: 1000;
       background: #fff; border-radius: 8px; box-shadow: 0 1px 6px rgba(0,0,0,.3);
@@ -273,6 +274,9 @@
        ==================================================================== */
     #m-handle, #m-tabs, #m-topbar { display: none; }
     @media (max-width: 640px) {
+      /* lock the viewport so a one-finger drag pans the map instead of
+         scrolling/rubber-banding the whole page (iOS needs position:fixed). */
+      body.mode-prod { position: fixed; inset: 0; width: 100%; height: 100%; }
       /* no "open menu" button — the sheet is always present at the bottom */
       body.mode-prod #panel-toggle { display: none; }
       body.mode-prod #panel > h2 { display: none; }
@@ -330,7 +334,7 @@
       /* the active tab's content scrolls inside the sheet */
       body.mode-prod #pl-results, body.mode-prod #stop-board,
       body.mode-prod #tt-sec, body.mode-prod #lines-sec {
-        overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 8px 14px; margin: 0;
+        overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; padding: 8px 14px; margin: 0;
       }
       body.mode-prod #tt-sec, body.mode-prod #lines-sec { border: none; flex: 1; min-height: 0; }
       body.mode-prod #tt-sec > summary, body.mode-prod #lines-sec > summary { display: none; }
