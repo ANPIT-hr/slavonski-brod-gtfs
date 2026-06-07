@@ -153,9 +153,14 @@
       { position: "topleft" }
     ).addTo(map);
 
-    // Left-click is reserved for object interaction (waypoints, stops, map clicks).
-    // Middle-click drag pans the map.
-    map.dragging.disable();
+    // Left-click is reserved for object interaction (waypoints, stops, map clicks);
+    // middle-click drag pans the map on desktop. On touch devices we leave
+    // dragging enabled so single-finger pan works — there's no middle button on
+    // a touchscreen, and tap-driven editing only triggers when a specific tool
+    // (tracing / pin mode) is active.
+    const isTouchDevice = (window.matchMedia && window.matchMedia("(pointer: coarse)").matches)
+      || ("ontouchstart" in window) || (navigator.maxTouchPoints > 0);
+    if (!isTouchDevice) map.dragging.disable();
     {
       let _pan = false, _px = 0, _py = 0;
       const _el = map.getContainer();
