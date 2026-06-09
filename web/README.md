@@ -1,194 +1,87 @@
-# Map viewer
+# SB prijevoz — web (SvelteKit)
 
-Interactive map of the Slavonski Brod feed: every stop as a pin, every
-route + direction drawn as a line **snapped to the real road network**.
+Interactive map + rider trip-planner for the Slavonski Brod GTFS feed, built with
+**[SvelteKit](https://svelte.dev/docs/kit)** (Svelte 5) + **Tailwind CSS**, the
+**Leaflet** map, and an in-browser Connection-Scan planner. Deploys to Vercel via
+`@sveltejs/adapter-vercel`.
 
-**`index.html`** is a 2D [Leaflet](https://leafletjs.com/) map reading the
-generated `data.js`. Switch the base layer (top-left control) between street
-map, satellite, and satellite + street names. **No API key needed** — satellite
-is free [Esri World Imagery](https://www.arcgis.com/home/item.html?id=10df2279f9684e4a9f6a7f08febac2a9).
+## Two modes (top-left toggle, hidden until unlocked)
 
-## Two modes (top-left toggle)
+- **Produkcija** — rider-facing: a Google-Maps-style trip planner (from/to by
+  address, map pin, or GPS), top-3 itineraries computed client-side, a per-line
+  timetable, and tap-a-stop departure boards.
+- **Razvoj** — field/editing tools: live GPS, the PDF tracing overlay, route
+  shape tracing, and draggable stop editing with a "✉ Pošalji prijedlog" submit
+  to the review queue.
 
-`index.html` runs in one of two modes, switched by the **Razvoj | Produkcija**
-toggle in the top-left corner. The mode persists in `localStorage` and can be
-deep-linked with `?mode=dev` / `?mode=prod`. **Default is Production.** See
-[`PLAN.md`](PLAN.md) for the full design.
+The switcher is hidden from riders; reveal it with **three quick taps on
+“Pronađi vožnju”** while from/to are empty (or open `?mode=dev`). Mode default is
+Production and persists in `localStorage`.
 
-- **Produkcija (Production)** — the rider-facing app:
-  - **Planer puta** — set *from* / *to* as **any point**: type an address
-    (free OSM [Nominatim](https://nominatim.org/) geocoding), click **📌 Karta**
-    then a spot on the map, or **📍 GPS**. Each point snaps to its nearest stop
-    and the walk to/from it is shown as its own leg. Pick a day + departure time
-    and get the top-3 itineraries (which line(s), when, transfers) computed **in
-    the browser** by a Connection-Scan algorithm over `schedule.js`. A/B pins are
-    draggable; tap an itinerary to highlight the whole door-to-door route.
-  - **Vozni red** — per-line, per-day timetable (honours holiday exceptions).
-  - The PDF tracing overlay and all editing tools are hidden.
-- **Razvoj (Development)** — the field/editing tools (GPS, PDF overlay, route
-  tracing, stop dragging). New here: each stop popup has **✉ Pošalji prijedlog**
-  which submits the stop's corrected position to a backend review queue (see
-  [Backend](#backend--recommendations-queue) below) — in addition to the local
-  `Izvezi stops.txt` export we use ourselves.
+## Structure
 
-The trip planner needs the baked schedule: **`build_map.py` now also writes
-`schedule.js`** (timed trips, the service calendar + exceptions, and walkable
-transfers). It loads lazily the first time Production opens.
+```
+src/
+  app.css                 # Tailwind + the shared (Google-Maps) styles
+  lib/
+    data/                 # GENERATED — committed, imported at build time
+      data.json           #   stops, routes, line geometry  (build_map.py)
+      schedule.json       #   trips, calendar, transfers     (build_map.py, lazy-loaded)
+      streets.json        #   street names for fuzzy search   (scripts/build_streets.sh)
+    util.js               # haversine, time/string helpers
+    geo.js                # Nominatim geocode, Overpass fallback, OSRM routing
+    planner.js            # createPlanner(D, SCH) — CSA, timetable, departure board
+    geometry.js           # road-following highlight geometry
+    stores.js             # shared reactive state
+    map/MapController.js   # imperative Leaflet controller (all map features)
+    components/            # SearchCard, PlannerResults, ItinCard, Timetable,
+                           # StopBoard, LinesPanel, ModeToggle, devtools/*
+  routes/
+    +page.svelte          # the map app (composition + mobile bottom sheet)
+    review/+page.svelte    # token-gated recommendations review queue
+    api/recommend/+server.js          # POST: validated + rate-limited submit -> KV
+    api/recommendations/+server.js    # GET/PATCH: the review queue (token-gated)
+```
 
-## Run it
+The map (`MapController`) is driven imperatively inside `+page.svelte`'s `onMount`
+(browser-only — Leaflet is dynamically imported so SSR doesn't choke). UI
+components talk to it through methods and observe it through `stores.js`.
 
-Open `index.html` in a browser. `data.js` is plain JavaScript, so the map works
-from `file://` with no web server. (GPS and a few features need a secure context
-— run `python3 -m http.server` from this folder and open `http://localhost:8000`,
-or deploy to Vercel.)
+## Develop
 
-- Right-hand panel toggles each line on/off ("Sve" / "Nijedna" = all / none).
-- Click a stop for its name, pole, position in the line, and coordinates.
+```sh
+npm install
+npm run dev        # http://localhost:5173
+npm run build      # production build (adapter-vercel)
+npm run preview
+npm run check      # svelte-check
+```
 
-## Capturing real stop coordinates in the field (GPS)
+## Data pipeline
 
-For walking the network with a phone and recording where each pole actually is.
-The **Moja lokacija (GPS)** panel section:
+`schedule.json` / `data.json` are generated from `../gtfs` and **committed**
+(regenerating hits the public OSRM server):
 
-- **📍 Moja lokacija** starts live tracking — a blue dot with an accuracy circle
-  follows you; the first fix recentres the map, later fixes don't (so you can
-  pan freely). The status shows the current fix accuracy (`±N m`). Press again
-  to stop.
-- To stamp a stop: enter **Uredi stajališta**, pick the line, tap the stop you're
-  standing at, then **📍 Postavi na GPS lokaciju** in its popup. It takes a fresh
-  high-accuracy reading and moves the stop there (warning first if accuracy is
-  worse than ±30 m). Fine-tune by dragging if you're not standing exactly on the
-  pole.
-- When done, **Izvezi stops.txt** downloads the updated file — drop it into
-  `gtfs/` and run `python3 build_map.py`. Captures persist in `localStorage`, so
-  you can collect over multiple sessions before exporting.
+```sh
+python3 web/build_map.py            # -> src/lib/data/{data,schedule}.json
+bash   scripts/build_streets.sh     # -> src/lib/data/streets.json (rarely needed)
+```
 
-> **Geolocation needs a secure context.** Browsers only grant GPS over HTTPS or
-> `localhost` — **not** `file://`. For field use, deploy to Vercel (below) and
-> open the HTTPS URL on your phone, or run `python3 -m http.server` and use
-> `http://localhost:8000` on the same machine.
+The Dev-mode editors export `stops.txt` / `shapes.txt` for `gtfs/`; re-run
+`build_map.py` after saving them there.
 
-## Deploy to Vercel
+## Backend (recommendations queue)
 
-The viewer itself is static (`index.html`, `data.js`, `schedule.js`,
-`overlay.png`). The only server-side code is two small functions under `api/`
-for the recommendations queue (see below).
+`api/recommend` validates (city bbox), rate-limits by IP, and `LPUSH`es onto an
+Upstash/Vercel-KV list. `api/recommendations` + `/review` read it, gated by a
+token. Set on Vercel:
 
-1. Import the GitHub repo at [vercel.com/new](https://vercel.com/new).
-2. In project settings set **Root Directory** to `web` (framework preset
-   "Other", no build command). Vercel serves `index.html` at the site root and
-   auto-detects `api/*.js` as serverless functions (installing `@upstash/redis`).
-3. Deploy. Open the resulting `https://…vercel.app` URL on your phone — HTTPS
-   means the GPS feature works.
+- `KV_REST_API_URL` + `KV_REST_API_TOKEN` (or `UPSTASH_REDIS_REST_URL` / `_TOKEN`)
+- `REVIEW_TOKEN` — the review-page password
+- `IP_SALT` — optional, for hashing submitter IPs
 
-(Or from the CLI: `cd web && npx vercel`.)
+## Deploy
 
-The site deploys and works **without** the backend — the trip planner, timetable
-and all viewing are client-side. Only the dev-mode **Pošalji prijedlog** button
-and `review.html` need the steps below.
-
-## Backend — recommendations queue
-
-Development-mode corrections are `POST`ed to `/api/recommend`, validated
-(inside the city bbox) and rate-limited per IP, then stored in a **serverless
-Redis** (Upstash) via [`@upstash/redis`](https://github.com/upstash/upstash-redis).
-We review them at **`/review.html`**.
-
-**One-time setup in the Vercel dashboard:**
-
-1. Provision a **serverless Redis** (Upstash). Two ways:
-   - **Via Vercel** — Storage → Marketplace → **Upstash** → Create. Easiest, but
-     the Vercel-managed flow may only offer **US regions**.
-   - **Directly on Upstash (recommended for an EU region)** — at
-     [console.upstash.com](https://console.upstash.com) create a Redis DB in
-     **eu-central-1 (Frankfurt)** or **eu-west-1 (Ireland)**, open its **REST
-     API** panel, and copy `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN`
-     into Vercel's env vars by hand.
-
-   The code reads either naming — `KV_REST_API_URL`/`KV_REST_API_TOKEN` **or**
-   `UPSTASH_REDIS_REST_URL`/`UPSTASH_REDIS_REST_TOKEN` — so either route works.
-2. **Settings → Environment Variables** → add **`REVIEW_TOKEN`** = a long random
-   secret. This gates `GET/PATCH /api/recommendations` and `review.html`.
-   (Optional: `IP_SALT` = any string, to salt the hashed IPs.)
-3. Redeploy so the new env vars take effect.
-
-**Reviewing:** open `https://…vercel.app/review.html`, paste the `REVIEW_TOKEN`
-when prompted. Each card shows the proposed move (old → new) on a mini-map.
-Use **⎘ stops.txt redak** to copy a paste-ready row, apply it to `gtfs/stops.txt`,
-run `python3 build_map.py`, then mark the item **✓ Primijenjeno** (or **✕ Odbij**).
-
-Tuning knobs live at the top of `api/recommend.js`: `BBOX`, `RATE_MAX`,
-`RATE_WINDOW`. If submissions get abused, add a Turnstile/hCaptcha check there —
-no front-end redesign needed.
-
-## PDF overlay — tracing stops off the official map (2D map only)
-
-The official transit-map PDF can be draped over the 2D map and georeferenced by
-hand, so you can right-click a tagged stop on it and read off real coordinates
-to enter into `gtfs/stops.txt`.
-
-First raster the PDF once (re-run only if the source PDF changes):
-
-    bash build_overlay.sh        # writes overlay.png from ../materials/…FINAL.pdf
-
-Then in `index.html`, the **Podloga (PDF karta)** panel section:
-
-- **Prikaži podlogu** — toggle the overlay on/off.
-- **Prozirnost** — opacity slider (starts ~60% so streets show through).
-  Keyboard **1–5** sets opacity to 0/25/50/75/100 %.
-- **✎ Uredi podlogu** — enter edit mode. Handle markers appear:
-  - the round **centre handle (✥)** drags the whole image to reposition it;
-  - the four **square corner handles** resize it **proportionally** (the image
-    keeps its aspect ratio — it scales, never stretches; the opposite corner
-    stays anchored).
-  - The map still pans/zooms when you drag *outside* the handles.
-  - Click **✓ Završi uređivanje** to finish (handles hide, alignment saved).
-  Align against the **Satelit** base layer — building footprints match.
-- **Spremi položaj** saves the alignment; it also auto-saves after each drag and
-  persists across reloads (`localStorage`). **Resetiraj** restores the default
-  box. **Izvezi granice** copies the bounding box `[SW, NE]` to the clipboard —
-  paste it into `DEFAULT_BOUNDS` in `index.html` to bake your alignment in as the
-  new default.
-
-The overlay is north-up (no rotation), which suits this city map; if you ever
-need to rotate/skew it, that needs a warp library — say the word.
-
-**Right-click anywhere** on the map (overlay or not) opens a popup with the
-`lat, lon` at that point, a **Kopiraj** copy button, and the nearest existing
-stop + distance — so you can tell whether a tagged stop is already in the feed.
-
-## Drawing accurate route lines (trace → shapes.txt)
-
-Without a `shapes.txt`, `build_map.py` asks OSRM to *guess* the road path between
-stops, which often doesn't match the bus's real route. To fix a line, trace it:
-
-In `index.html`, the **Crtanje rute (shapes)** panel section:
-
-1. Turn the **PDF overlay** on (it shows the real, colour-coded route lines).
-2. Pick the route+direction in the dropdown.
-3. Click **✎ Crtaj rutu**, then click along the real path on the map. The line
-   redraws as you go and **replaces the auto-routed line**. **↶ Poništi** removes
-   the last point; **Obriši** clears the route. A **✓** marks traced routes.
-   Traces persist in `localStorage`.
-4. Click **Izvezi shapes.txt** to download a GTFS `shapes.txt`
-   (`shape_id = SHP_<route>_<direction>`).
-
-Then drop the file into `gtfs/shapes.txt` and re-run `python3 build_map.py` — it
-uses each traced shape in place of OSRM, and falls back to OSRM for untraced
-routes. (Wiring `shape_id` into `trips.txt` for full GTFS correctness is a
-separate step — ask and I'll add it.)
-
-## Regenerate after editing the feed
-
-`data.js` is generated from `../gtfs`. Re-run after changing stops, trips, or
-stop_times:
-
-    python3 build_map.py
-
-For each route + direction it picks the trip with the most stops as the
-representative shape, then calls the public OSRM server to snap the stop
-sequence to streets. If routing is unavailable it falls back to straight
-stop-to-stop lines so the map still works offline.
-
-Map: [Leaflet](https://leafletjs.com/) + OpenStreetMap tiles. Routing:
-[OSRM](http://project-osrm.org/) demo server. No API keys required.
+Vercel project **root directory = `web/`**; the SvelteKit preset is auto-detected
+from `package.json`. `adapter-vercel` turns `api/*/+server.js` into serverless
+functions.
