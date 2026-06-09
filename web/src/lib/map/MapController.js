@@ -99,7 +99,9 @@ export class MapController {
 			)
 			.addTo(map);
 
-		// Left-click is reserved for object interaction; middle-click drag pans.
+		// Native left-click drag panning is toggled per mode in applyMode():
+		// on for riders (prod), off for dev so left-click is free for tracing.
+		// Middle-click drag always pans — the only way to pan in dev mode.
 		map.dragging.disable();
 		let _pan = false,
 			_px = 0,
@@ -1241,12 +1243,17 @@ export class MapController {
 			if (this.ovEdit) this.setOverlayEdit(false);
 			if (this.stopEditMode) this.setStopEdit(false);
 			this.setOverlayVisible(false);
+			// Riders pan with a normal one-click / one-finger drag.
+			this.map.dragging.enable();
 			this.ensureSchedule();
 		} else {
 			this.clearHighlight();
 			this.setPinMode(null);
 			this.setOverlayVisible(this._ovOn);
 			this.closeBoard();
+			// Dev mode keeps left-click free for tracing/stop editing; pan with
+			// middle-click drag (see _initMap).
+			this.map.dragging.disable();
 		}
 		this._updateProdStops();
 	}
