@@ -221,7 +221,7 @@ export class MapController {
 			})
 		);
 		lineVisibility.set(vis);
-		this._refreshTraceRoutes();
+		// NB: traceRoutes are published from _initTrace(), once this.shapes exists.
 	}
 
 	setLineVisible(key, on) {
@@ -608,6 +608,7 @@ export class MapController {
 			Object.keys(this.shapes).map((k) => (k.includes(':') ? k.slice(0, k.lastIndexOf(':')) : k))
 		);
 		rks.forEach((rk) => this._redrawLine(rk));
+		this._refreshTraceRoutes();
 
 		this.map.on('click', (e) => this._onTraceClick(e));
 	}
