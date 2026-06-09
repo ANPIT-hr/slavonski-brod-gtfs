@@ -143,7 +143,9 @@ a {
 #panel .row input[type='range'] {
 	flex: 1;
 }
-#panel button {
+/* Generic dev-panel button chrome — exclude .gm-go, the rider's primary CTA,
+   which has its own blue styling that this ID-specificity rule would clobber. */
+#panel button:not(.gm-go) {
 	font-size: 12px;
 	cursor: pointer;
 	border: 1px solid #ccc;
@@ -151,7 +153,7 @@ a {
 	border-radius: 6px;
 	padding: 5px 9px;
 }
-#panel button:hover {
+#panel button:not(.gm-go):hover {
 	background: #f3f3f3;
 }
 #panel button.toggled {
