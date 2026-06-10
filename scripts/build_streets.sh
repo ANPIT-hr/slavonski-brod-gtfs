@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
-# Regenerate web/streets.js — the list of Slavonski Brod street names used by the
-# planner's forgiving "did you mean" address search. Pulls every named highway in
-# the city from Overpass (trying a few mirrors, since the main one rate-limits).
+# Regenerate web/src/lib/data/streets.json — the list of Slavonski Brod street
+# names used by the planner's forgiving "did you mean" address search. Pulls
+# every named highway in the city from Overpass (trying a few mirrors, since the
+# main one rate-limits).
 #
 # Run occasionally (street names rarely change):  bash scripts/build_streets.sh
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-OUT="$ROOT/web/streets.js"
+OUT="$ROOT/web/src/lib/data/streets.json"
 QL='[out:json][timeout:60];area["name"="Slavonski Brod"]["admin_level"~"8|9|10"]->.a;way[highway][name](area.a);out tags;'
 
 MIRRORS=(
@@ -34,11 +35,8 @@ names = sorted({e["tags"]["name"] for e in d.get("elements", []) if e.get("tags"
 if len(names) < 50:
     sys.exit("Too few street names (%d) — Overpass likely failed; not overwriting." % len(names))
 with open(sys.argv[2], "w", encoding="utf-8") as f:
-    f.write("// City street names (OSM, Slavonski Brod) for the planner's forgiving\n")
-    f.write("// address search. Regenerate with scripts/build_streets.sh.\n")
-    f.write("window.SB_STREETS = ")
-    json.dump(names, f, ensure_ascii=False, indent=0)
-    f.write(";\n")
+    json.dump(names, f, ensure_ascii=False)
+    f.write("\n")
 print(f"Wrote {sys.argv[2]} with {len(names)} street names")
 PY
 rm -f "$tmp"

@@ -9,5 +9,5 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 SRC="../materials/AUTOBUSNE LINIJE-A-2 - FINAL.pdf"
-pdftocairo -png -singlefile -scale-to 2400 "$SRC" overlay
-echo "Wrote $(pwd)/overlay.png"
+pdftocairo -png -singlefile -scale-to 2400 "$SRC" static/overlay
+echo "Wrote $(pwd)/static/overlay.png"
