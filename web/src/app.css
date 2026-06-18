@@ -35,6 +35,16 @@ a {
 	border: 2px solid #333;
 	border-radius: 50%;
 }
+/* Station hover label (production stops) — large + readable for review */
+.leaflet-tooltip.stop-label {
+	font-size: 15px;
+	font-weight: 700;
+	padding: 5px 9px;
+	color: #1a2330;
+	border: 2px solid #1a73e8;
+	border-radius: 6px;
+	box-shadow: 0 1px 6px rgba(0, 0, 0, 0.3);
+}
 .coord-pop code {
 	font-size: 13px;
 	font-weight: bold;

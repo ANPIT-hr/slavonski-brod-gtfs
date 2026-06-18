@@ -1495,13 +1495,13 @@ export class MapController {
 		const L = this.L;
 		this.D.stops.forEach((s) => {
 			const m = L.circleMarker([s.lat, s.lon], {
-				radius: 5,
+				radius: 8,
 				color: '#1a73e8',
-				weight: 2,
+				weight: 3,
 				fillColor: '#fff',
 				fillOpacity: 1
 			});
-			m.bindTooltip(s.name, { direction: 'top' });
+			m.bindTooltip(s.name, { direction: 'top', className: 'stop-label' });
 			m.on('click', () => this.openBoard(s.id));
 			this.prodStops.addLayer(m);
 		});
