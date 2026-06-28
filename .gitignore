@@ -19,6 +19,7 @@ tools/*.jar
 
 # Local Claude config (not shared)
 .claude/settings.local.json
+.claude/scheduled_tasks.lock
 
 # Python build junk
 __pycache__/
