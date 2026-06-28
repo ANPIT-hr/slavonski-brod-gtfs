@@ -232,13 +232,19 @@ def main():
     if no_shape:
         print(f"No traced geometry for: {', '.join(no_shape)} — trips ship without shape_id")
 
-    # trips.txt with the shape_id column appended.
-    trip_fields = list(trips[0].keys()) + ["shape_id"]
+    # trips.txt carrying the composed shape_id. The source trips.txt may already
+    # have a shape_id column (raw trace ids like SHP_L0_1); overwrite it with the
+    # composed per-pattern id (SHP_L0_1_P1) that matches the shapes.txt below —
+    # appending a second column would duplicate the header (a validator ERROR).
+    trip_fields = list(trips[0].keys())
+    if "shape_id" not in trip_fields:
+        trip_fields.append("shape_id")
     trips_buf = io.StringIO()
     w = csv.writer(trips_buf, lineterminator="\n")
     w.writerow(trip_fields)
     for t in trips:
-        w.writerow([t[f] for f in trip_fields[:-1]] + [trip_shape[t["trip_id"]]])
+        w.writerow([trip_shape[t["trip_id"]] if f == "shape_id" else t[f]
+                    for f in trip_fields])
 
     shapes_buf = io.StringIO()
     w = csv.writer(shapes_buf, lineterminator="\n")
