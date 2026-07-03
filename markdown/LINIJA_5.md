@@ -1,18 +1,18 @@
 # LINIJA 5 — Autobusni kolodvor → S. Radića - Jelas → Autobusni kolodvor
 
 <!-- COORD-STATUS:START -->
-## Coordinate status — 2/15 stops set
+## Coordinate status — 9/16 stops set
 
 Auto-generated from `gtfs/stops.txt`. ✅ = real coordinate set, ⬜ = still placeholder. Regenerate with `python3 tools/coord_status.py`.
 
 - ✅ Autobusni kolodvor `STOP_BUS_STN`
-- ⬜ Korzo `STOP_KORZO`
-- ⬜ Tržnica `STOP_TRZNICA`
-- ⬜ Borovska `STOP_BOROVSKA`
+- ✅ Korzo `STOP_KORZO_A`
+- ✅ Tržnica `STOP_TRZNICA_A`
+- ✅ Borovska `STOP_BOROVSKA_A`
 - ✅ Trg. centar Colosseum `STOP_COLOSSEUM`
-- ⬜ Sv. Nikole Tavelića `STOP_SV_N_TAVELICA`
-- ⬜ Pavla Šubića I `STOP_P_SUBICA_1`
-- ⬜ Pavla Šubića II `STOP_P_SUBICA_2`
+- ✅ Sv. Nikole Tavelića `STOP_SV_N_TAVELICA`
+- ✅ Pavla Šubića I `STOP_P_SUBICA_1`
+- ✅ Pavla Šubića II `STOP_P_SUBICA_2`
 - ⬜ 3. gardijske brigade `STOP_GARDIJSKE_3`
 - ⬜ Ivana Velikanovića `STOP_I_VELIKANOVICA`
 - ⬜ Augustina Jarića `STOP_A_JARICA`
@@ -20,6 +20,7 @@ Auto-generated from `gtfs/stops.txt`. ✅ = real coordinate set, ⬜ = still pla
 - ⬜ Stjepana Radića II `STOP_S_RADICA_2`
 - ⬜ Stjepana Radića III `STOP_S_RADICA_3`
 - ⬜ Stjepana Radića IV `STOP_S_RADICA_4`
+- ✅ Borovska `STOP_BOROVSKA_B`
 
 <!-- COORD-STATUS:END -->
 

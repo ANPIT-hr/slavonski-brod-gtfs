@@ -602,7 +602,7 @@ export class MapController {
 		this.traceShapeKey = this.traceKey;
 		this.traceVariantIdx = 0;
 		this.traceActiveIdx = -1;
-		this.SNAP_PX = 15;
+		this.SNAP_PX = 24;
 		this.snapRing = null;
 		this.vtxLayer = L.layerGroup().addTo(this.map);
 
@@ -692,9 +692,9 @@ export class MapController {
 				zIndexOffset: 550,
 				icon: L.divIcon({
 					className: '',
-					html: `<div style="width:8px;height:8px;background:#ccc;border:1.5px solid #555;border-radius:50%;opacity:0.85"></div>`,
-					iconSize: [8, 8],
-					iconAnchor: [4, 4]
+					html: `<div style="width:13px;height:13px;background:#ddd;border:2px solid #555;border-radius:50%;opacity:0.8" title="povuci za umetanje točke"></div>`,
+					iconSize: [13, 13],
+					iconAnchor: [6.5, 6.5]
 				})
 			});
 			mMid.on('click', (e) => {
@@ -734,9 +734,9 @@ export class MapController {
 				zIndexOffset: 600,
 				icon: L.divIcon({
 					className: '',
-					html: `<div style="width:${isActive ? 13 : 10}px;height:${isActive ? 13 : 10}px;background:${isActive ? '#ffe08a' : '#fff'};border:2px solid #222;border-radius:50%"></div>`,
-					iconSize: isActive ? [13, 13] : [10, 10],
-					iconAnchor: isActive ? [6, 6] : [5, 5]
+					html: `<div style="width:${isActive ? 20 : 15}px;height:${isActive ? 20 : 15}px;background:${isActive ? '#ffd24d' : '#fff'};border:3px solid #1a1a1a;border-radius:50%;box-shadow:0 1px 3px rgba(0,0,0,.4)" title="povuci = pomakni · desni klik = obriši"></div>`,
+					iconSize: isActive ? [20, 20] : [15, 15],
+					iconAnchor: isActive ? [10, 10] : [7.5, 7.5]
 				})
 			});
 			m.on('click', (e) => {
@@ -812,19 +812,15 @@ export class MapController {
 		const snap = this._findSnap(e.latlng);
 		const coord = snap ? snap : [e.latlng.lat, e.latlng.lng];
 		const pts = (this.shapes[this.traceShapeKey] = this.shapes[this.traceShapeKey] || []);
+		// Insert after the active vertex if one is selected mid-line, otherwise
+		// append to the end. Editing stays on the SAME line — a plain map click no
+		// longer spawns a new branch variant (that was confusing and created stray
+		// _B shapes). Use "Kopiraj put u" for variants instead.
 		const activeI =
-			this.traceActiveIdx >= 0 && this.traceActiveIdx < pts.length
-				? this.traceActiveIdx
-				: pts.length - 1;
-		if (activeI < pts.length - 1) {
-			const allKeys = this._getVariantKeys(this.traceKey);
-			const newShapeKey = this.traceKey + ':' + allKeys.length;
-			this.shapes[newShapeKey] = pts.slice(0, activeI + 1).map((p) => [...p]);
-			this.shapes[newShapeKey].push(coord);
-			this._ensureBranchPolyline(this.traceKey, newShapeKey);
-			this.traceShapeKey = newShapeKey;
-			this.traceVariantIdx = allKeys.length;
-			this.traceActiveIdx = this.shapes[newShapeKey].length - 1;
+			this.traceActiveIdx >= 0 && this.traceActiveIdx < pts.length ? this.traceActiveIdx : -1;
+		if (activeI >= 0 && activeI < pts.length - 1) {
+			pts.splice(activeI + 1, 0, coord);
+			this.traceActiveIdx = activeI + 1;
 		} else {
 			pts.push(coord);
 			this.traceActiveIdx = pts.length - 1;
@@ -842,6 +838,24 @@ export class MapController {
 		this.traceActiveIdx = -1;
 		if (this.tracing) this.setTracing(true);
 		if (this.stopEditMode) this._buildStopEditMarkers();
+	}
+	// Seed the editor for the current route+variant with the line that's already
+	// drawn (from data.json), so you edit/adjust it instead of redrawing blank.
+	loadCurrentTrace() {
+		const key = this.traceShapeKey || this.traceKey;
+		if (!key) return 0;
+		const g = this.origGeom[this.traceKey];
+		if (!g || g.length < 2) {
+			alert('Nema trenutne rute za ovu liniju.');
+			return 0;
+		}
+		this.shapes[key] = g.map((p) => [p[0], p[1]]);
+		this.traceActiveIdx = this.shapes[key].length - 1;
+		this._saveShapes();
+		this._redrawLine(this.traceKey);
+		if (this.tracing) this._renderVtx();
+		this._refreshTraceRoutes();
+		return this.shapes[key].length;
 	}
 	setTracing(on) {
 		this.tracing = on;
@@ -867,6 +881,33 @@ export class MapController {
 			this._redrawLine(this.traceKey);
 			this._refreshTraceRoutes();
 		}
+	}
+	// Remove ALL variant/branch shapes for the current route (the dashed lines),
+	// keeping only the primary. Cleans up stray _B branches from old accidental
+	// click-branching.
+	clearVariants() {
+		const base = this.traceKey;
+		if (!base) return 0;
+		let removed = 0;
+		Object.keys(this.shapes).forEach((k) => {
+			if (k !== base && k.startsWith(base + ':')) {
+				delete this.shapes[k];
+				if (this.branchPolylines[k]) {
+					if (this.groups[base]) this.groups[base].removeLayer(this.branchPolylines[k]);
+					delete this.branchPolylines[k];
+				}
+				removed++;
+			}
+		});
+		this.traceShapeKey = base;
+		this.traceVariantIdx = 0;
+		this.traceActiveIdx = -1;
+		this._saveShapes();
+		this._redrawLine(base);
+		this._updateVarNav();
+		this._renderVtx();
+		this._refreshTraceRoutes();
+		return removed;
 	}
 	deleteCurrentVariant() {
 		if (!this.tracing || !this.traceShapeKey || !this.shapes[this.traceShapeKey]) return;

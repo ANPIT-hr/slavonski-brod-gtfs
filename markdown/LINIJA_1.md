@@ -1,7 +1,7 @@
 # LINIJA 1 — Autobusni kolodvor → Vinogorje → Autobusni kolodvor
 
 <!-- COORD-STATUS:START -->
-## Coordinate status — 14/28 stops set
+## Coordinate status — 21/28 stops set
 
 Auto-generated from `gtfs/stops.txt`. ✅ = real coordinate set, ⬜ = still placeholder. Regenerate with `python3 tools/coord_status.py`.
 
@@ -17,17 +17,17 @@ Auto-generated from `gtfs/stops.txt`. ✅ = real coordinate set, ⬜ = still pla
 - ✅ Vinogradska III `STOP_VINOGRADSKA_3_A`
 - ⬜ Dravska `STOP_DRAVSKA`
 - ⬜ Dunavska `STOP_DUNAVSKA`
-- ⬜ Vinogorska I `STOP_VINOGORSKA_1`
-- ⬜ Vinogorska II `STOP_VINOGORSKA_2`
-- ⬜ Vinogorska III `STOP_VINOGORSKA_3`
-- ⬜ Kerdeni I `STOP_KERDENI_1`
+- ✅ Vinogorska I `STOP_VINOGORSKA_1`
+- ✅ Vinogorska II `STOP_VINOGORSKA_2`
+- ✅ Vinogorska III `STOP_VINOGORSKA_3`
+- ✅ Kerdeni I `STOP_KERDENI_1`
 - ⬜ Kerdeni II `STOP_KERDENI_2`
 - ⬜ Kerdeni III `STOP_KERDENI_3`
 - ⬜ Trg sv. Antuna `STOP_TRG_SV_ANTUNA`
-- ⬜ Ulica sv. Antuna I `STOP_UL_SV_ANTUNA_1`
+- ✅ Ulica sv. Antuna I `STOP_UL_SV_ANTUNA_1`
 - ⬜ Ulica sv. Antuna II `STOP_UL_SV_ANTUNA_2`
-- ⬜ Kumičićeva I `STOP_KUMICICEVA_1`
-- ⬜ Kumičićeva II `STOP_KUMICICEVA_2`
+- ✅ Kumičićeva I `STOP_KUMICICEVA_1`
+- ✅ Kumičićeva II `STOP_KUMICICEVA_2`
 - ⬜ Kumičićeva III `STOP_KUMICICEVA_3`
 - ✅ Gupčeva `STOP_GUPCEVA_B`
 - ✅ Zrinska `STOP_ZRINSKA_B`

@@ -28,6 +28,11 @@ ROUTER = f"{OTP_URL}/otp/routers/default/plan"
 # A weekday/time is required by the API but irrelevant for CAR geometry.
 DATE, TIME = "2026-06-29", "10:00"
 
+# Shapes hand-corrected in the web editor (drag stops / redraw line). These are
+# preserved VERBATIM from the current gtfs/shapes.txt and never regenerated, so
+# manual route work survives a re-run. Remove an id here to let it regenerate.
+LOCKED_SHAPES = {"SHP_L1_0", "SHP_L2_0"}
+
 
 def haversine(a, b):
     R = 6371000.0
@@ -86,6 +91,12 @@ def main():
     stops = {r["stop_id"]: (float(r["stop_lat"]), float(r["stop_lon"]))
              for r in csv.DictReader(open(GTFS / "stops.txt"))}
 
+    # Preserve locked (hand-corrected) shapes verbatim from the current file.
+    existing_shapes = defaultdict(list)
+    if (GTFS / "shapes.txt").exists():
+        for r in csv.DictReader(open(GTFS / "shapes.txt")):
+            existing_shapes[r["shape_id"]].append(r)
+
     # Ordered stop sequence per trip.
     seq_rows = defaultdict(list)
     for r in csv.DictReader(open(GTFS / "stop_times.txt")):
@@ -118,6 +129,9 @@ def main():
     shapes_out = OrderedDict()
     quality = {}
     for sid, pat in shape_seqs.items():
+        if sid in LOCKED_SHAPES and sid in existing_shapes:
+            print(f"  {sid}: LOCKED — keeping existing hand-corrected geometry")
+            continue
         print(f"  {sid}: routing {len(pat)-1} legs through {len(pat)} stops ...")
         poly = []
         for a, b in zip(pat, pat[1:]):
@@ -141,7 +155,13 @@ def main():
         w = csv.writer(f)
         w.writerow(["shape_id", "shape_pt_lat", "shape_pt_lon",
                     "shape_pt_sequence", "shape_dist_traveled"])
-        for sid, poly in shapes_out.items():
+        for sid in shape_seqs:
+            if sid in LOCKED_SHAPES and sid in existing_shapes:
+                for r in existing_shapes[sid]:
+                    w.writerow([sid, r["shape_pt_lat"], r["shape_pt_lon"],
+                                r["shape_pt_sequence"], r.get("shape_dist_traveled", "")])
+                continue
+            poly = shapes_out[sid]
             dist = 0.0
             for i, p in enumerate(poly):
                 if i:

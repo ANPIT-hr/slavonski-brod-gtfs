@@ -1,7 +1,7 @@
 # LINIJA 6 — Autobusni kolodvor → Bjeliš → Autobusni kolodvor
 
 <!-- COORD-STATUS:START -->
-## Coordinate status — 12/18 stops set
+## Coordinate status — 13/18 stops set
 
 Auto-generated from `gtfs/stops.txt`. ✅ = real coordinate set, ⬜ = still placeholder. Regenerate with `python3 tools/coord_status.py`.
 
@@ -19,7 +19,7 @@ Auto-generated from `gtfs/stops.txt`. ✅ = real coordinate set, ⬜ = still pla
 - ⬜ Sv. Lovre `STOP_SV_LOVRE`
 - ⬜ Drvna industrija `STOP_DRVNA_IND`
 - ✅ Tome Bakača III `STOP_T_BAKACA_3_B`
-- ⬜ Tome Bakača II `STOP_T_BAKACA_2_B`
+- ✅ Tome Bakača II `STOP_T_BAKACA_2_B`
 - ✅ Tržnica `STOP_TRZNICA_A`
 - ✅ Zrinska `STOP_ZRINSKA_A`
 - ✅ Korzo `STOP_KORZO_B`

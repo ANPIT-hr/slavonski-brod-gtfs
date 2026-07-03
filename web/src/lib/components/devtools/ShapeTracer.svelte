@@ -21,6 +21,11 @@
 	function toggleDraw() {
 		tracing = mc.setTracing(!tracing);
 	}
+	function loadCurrent() {
+		if (!tracing) tracing = mc.setTracing(true);
+		const n = mc.loadCurrentTrace();
+		if (n) tracing = mc.setTracing(true); // re-render vertices
+	}
 </script>
 
 <details class="sec" open>
@@ -35,8 +40,19 @@
 		<button onclick={() => mc.traceUndo()}>↶ Poništi</button>
 	</div>
 	<div class="row">
+		<button onclick={loadCurrent}>⤓ Učitaj trenutnu rutu</button>
+	</div>
+	<div class="row">
 		<button onclick={() => mc.deleteCurrentVariant()}>Obriši</button>
 		<button onclick={() => mc.exportShapes()}>Izvezi shapes.txt</button>
+	</div>
+	<div class="row">
+		<button
+			onclick={() => {
+				const n = mc.clearVariants();
+				alert(n ? `Obrisano ${n} varijanti (isprekidane linije).` : 'Nema varijanti.');
+			}}>🗑 Obriši sve varijante (isprekidane linije)</button
+		>
 	</div>
 	<div class="row">
 		<select style="flex:1" bind:value={copyDest}>
@@ -53,7 +69,12 @@
 		</div>
 	{/if}
 	<small
-		>Odaberi liniju, klikni <b>Crtaj</b>, pa klikći po putu. Bijele točke = povuci/klikni, desni klik
-		= briši. Sive = umetni. Žuta = aktivna. ✓ = nacrtano.</small
+		>Odaberi liniju → <b>Učitaj trenutnu rutu</b> (uređuj postojeću) ili <b>Crtaj</b> od nule.<br />
+		• <b>Povuci</b> bijelu točku = pomakni ju na pravu cestu.<br />
+		• <b>Desni klik</b> na točku = obriši.<br />
+		• Povuci <b>sivu</b> (na sredini segmenta) = umetni novu točku.<br />
+		• Klik na kartu = doda točku (produžuje liniju — više NE stvara varijante).<br />
+		• Žuta = odabrana točka. Za varijante koristi „Kopiraj put u".<br />
+		Kad završiš → <b>Izvezi shapes.txt</b> i pošalji mi.</small
 	>
 </details>
