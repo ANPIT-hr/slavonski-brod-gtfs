@@ -31,7 +31,7 @@ DATE, TIME = "2026-06-29", "10:00"
 # Shapes hand-corrected in the web editor (drag stops / redraw line). These are
 # preserved VERBATIM from the current gtfs/shapes.txt and never regenerated, so
 # manual route work survives a re-run. Remove an id here to let it regenerate.
-LOCKED_SHAPES = {"SHP_L1_0", "SHP_L2_0"}
+LOCKED_SHAPES = {"SHP_L1_0", "SHP_L2_0", "SHP_L4_0"}
 
 
 def haversine(a, b):

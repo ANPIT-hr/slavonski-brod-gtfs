@@ -636,7 +636,11 @@ export class MapController {
 		this.branchPolylines[shapeKey] = pl;
 	}
 	_redrawLine(routeKey) {
-		const primaryPts = this.shapes[routeKey];
+		// Saved traces (localStorage) are an editing aid: they override the built
+		// geometry ONLY in dev mode. In prod, always render the geometry baked
+		// into data.json so viewers never see half-drawn/stale traces.
+		const dev = this.appMode === 'dev';
+		const primaryPts = dev ? this.shapes[routeKey] : null;
 		if (this.linePolylines[routeKey])
 			this.linePolylines[routeKey].setLatLngs(
 				primaryPts && primaryPts.length >= 2 ? primaryPts : this.origGeom[routeKey]
@@ -645,8 +649,19 @@ export class MapController {
 		for (let i = 1; i < varKeys.length; i++) {
 			const sk = varKeys[i];
 			this._ensureBranchPolyline(routeKey, sk);
-			this.branchPolylines[sk].setLatLngs((this.shapes[sk] || []).length >= 2 ? this.shapes[sk] : []);
+			this.branchPolylines[sk].setLatLngs(
+				dev && (this.shapes[sk] || []).length >= 2 ? this.shapes[sk] : []
+			);
 		}
+	}
+	// Re-render every line that has a saved trace (used on mode switch, since
+	// whether the trace or the built geometry shows depends on the mode).
+	_redrawAllTraced() {
+		if (!this.shapes) return;
+		const rks = new Set(
+			Object.keys(this.shapes).map((k) => (k.includes(':') ? k.slice(0, k.lastIndexOf(':')) : k))
+		);
+		rks.forEach((rk) => this._redrawLine(rk));
 	}
 	_optLabel(key, meta, line) {
 		const dir =
@@ -1279,6 +1294,8 @@ export class MapController {
 	// ---- Modes --------------------------------------------------------------
 	applyMode(m) {
 		this.appMode = m;
+		// Traces show only in dev; re-render so switching modes updates the map.
+		this._redrawAllTraced();
 		if (m === 'prod') {
 			if (this.tracing) this.setTracing(false);
 			if (this.ovEdit) this.setOverlayEdit(false);
