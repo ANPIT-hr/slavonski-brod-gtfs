@@ -143,18 +143,33 @@ export class MapController {
 		this.linePolylines = {};
 		this.origGeom = {};
 		this.stopLineMarkers = {};
+		this._varCount = {};
 		this._loadStopOverrides();
 		this._loadNewStops();
 		const allLatLngs = [];
 
 		D.lines.forEach((line) => {
 			const meta = this.routeMeta(line.route_id);
-			const key = line.route_id + '|' + line.direction_id;
+			// A shortened variant gets its own key (route|dir|n) so it doesn't clash
+			// with the primary line and is toggleable on its own. Drawn dashed.
+			const base = line.route_id + '|' + line.direction_id;
+			let key = base;
+			if (line.variant) {
+				this._varCount[base] = (this._varCount[base] || 0) + 1;
+				key = base + '|' + this._varCount[base];
+			}
+			const isVar = !!line.variant;
+			const tip = `${meta.short_name} — ${line.headsign || meta.long_name}${
+				isVar ? ' (' + line.variant + ')' : ''
+			}`;
 			const group = L.layerGroup();
 
-			const pl = L.polyline(line.geometry, { color: meta.color, weight: 4, opacity: 0.85 }).bindTooltip(
-				`${meta.short_name} — ${line.headsign || meta.long_name}`
-			);
+			const pl = L.polyline(line.geometry, {
+				color: meta.color,
+				weight: isVar ? 3 : 4,
+				opacity: isVar ? 0.9 : 0.85,
+				...(isVar ? { dashArray: '10,6' } : {})
+			}).bindTooltip(tip);
 			pl.addTo(group);
 			this.linePolylines[key] = pl;
 			this.origGeom[key] = line.geometry;
@@ -163,12 +178,14 @@ export class MapController {
 			(line.branches || []).forEach((seg) => {
 				if (!seg || seg.length < 2) return;
 				L.polyline(seg, { color: meta.color, weight: 4, opacity: 0.85 })
-					.bindTooltip(`${meta.short_name} — ${line.headsign || meta.long_name}`)
+					.bindTooltip(tip)
 					.addTo(group);
 				seg.forEach((p) => allLatLngs.push(p));
 			});
 
-			line.stop_ids.forEach((sid, i) => {
+			// Variant lines are a subset of the primary's stops — the primary already
+			// draws every stop marker, so skip them here to avoid duplicates.
+			if (!isVar) line.stop_ids.forEach((sid, i) => {
 				const s = this.stopById[sid];
 				if (!s) return;
 				const ov = this.stopOverrides[sid];
@@ -209,10 +226,18 @@ export class MapController {
 		linesStore.set(
 			this.layerKeys.map(({ key, meta, line }) => {
 				vis[key] = false;
-				const dirTxt =
-					D.lines.filter((l) => l.route_id === line.route_id).length > 1
-						? ` (${line.headsign || 'smjer ' + line.direction_id})`
-						: '';
+				const siblings = D.lines.filter(
+					(l) => l.route_id === line.route_id && l.direction_id === line.direction_id
+				);
+				// Label each pattern: variants show their name ("skraćeni"), the
+				// fullest shows "puni" only when a variant exists to contrast with.
+				const dirTxt = line.variant
+					? ` (${line.variant})`
+					: siblings.some((l) => l.variant)
+						? ' (puni)'
+						: siblings.length > 1
+							? ` (${line.headsign || 'smjer ' + line.direction_id})`
+							: '';
 				return {
 					key,
 					color: meta.color,
@@ -665,7 +690,7 @@ export class MapController {
 	}
 	_optLabel(key, meta, line) {
 		const dir =
-			this.D.lines.filter((l) => l.route_id === line.route_id).length > 1
+			this.D.lines.filter((l) => l.route_id === line.route_id && !l.variant).length > 1
 				? ' ' + (line.headsign || 'smjer ' + line.direction_id)
 				: '';
 		const done = this._getVariantKeys(key).some(
@@ -676,8 +701,12 @@ export class MapController {
 		return meta.short_name + dir + done;
 	}
 	_refreshTraceRoutes() {
+		// The editor traces the primary (fullest) geometry only; composed variant
+		// lines are not hand-editable, so keep them out of the route picker.
 		traceRoutes.set(
-			this.layerKeys.map(({ key, meta, line }) => ({ key, label: this._optLabel(key, meta, line) }))
+			this.layerKeys
+				.filter(({ line }) => !line.variant)
+				.map(({ key, meta, line }) => ({ key, label: this._optLabel(key, meta, line) }))
 		);
 	}
 	_updateVarNav() {

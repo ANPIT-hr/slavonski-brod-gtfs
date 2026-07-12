@@ -22,11 +22,9 @@ Once real coordinates are in, merge identical stops or split mistaken merges.
 L4 has two trip patterns in the PDF (some trips skip the Šestina C extension stops). v1 uses the long pattern for all L4 trips, so short-pattern trips will show extra phantom stops. Fix in v1.1.
 
 ### 5. Route geometry gaps in `shapes.txt`
-Per-trip shapes are composed from the hand-traced geometry at build time (see [workflow.md](workflow.md#building-the-zip)). Remaining gaps, drawn as straight lines until traced:
-- **L0** has no traced geometry at all — its trips ship without `shape_id`.
-- **L1P** Janiševac loop (8 hops) is untraced.
-- **L4** Mirka Turčinovića → Nas. M. Majstorovića and Branimirova → Vilme Daus II are untraced.
-- The trace near Autobusni kolodvor stops ~110 m short of the station forecourt (two validator warnings).
+Per-trip shapes are composed from the hand-traced geometry at build time (see [workflow.md](workflow.md#building-the-zip)). L0 geometry, the L1P Janiševac loop, and the full L3 route are now hand-traced; every pattern composes with 0 straight hops. Remaining gaps:
+- **L4** Mirka Turčinovića and Nas. M. Majstorovića sit 110–117 m from the traced line (the two remaining validator warnings); the segment needs a finer trace.
+- **L2** one stop pair matches the traced loop out of order (validator warning `stops_match_shape_out_of_order`).
 
 ---
 

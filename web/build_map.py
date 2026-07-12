@@ -22,6 +22,12 @@ import urllib.request
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 GTFS = os.path.join(HERE, "..", "gtfs")
+# Share the road-following shape composer with scripts/build_feed.py so the map's
+# per-pattern variant lines match the geometry baked into the GTFS zip.
+sys.path.insert(0, os.path.join(HERE, "..", "tools"))
+from shape_compose import compose  # noqa: E402
+from shape_compose import load_traced as load_pieces  # noqa: E402
+
 DATA_DIR = os.path.join(HERE, "src", "lib", "data")
 OUT = os.path.join(DATA_DIR, "data.json")
 SCHED_OUT = os.path.join(DATA_DIR, "schedule.json")
@@ -253,57 +259,72 @@ def main():
     for tid in seq:
         seq[tid] = [sid for _, sid in sorted(seq[tid])]
 
-    # For each (route_id, direction_id) pick the trip with the most stops as the
-    # representative shape — that captures the fullest variant of the line.
-    rep = {}  # (route_id, direction_id) -> (trip_id, [stop_id])
+    # Distinct stop patterns per (route_id, direction_id), fullest first. A route
+    # whose trips skip some stops (e.g. L3's 6:10/7:00 rides skip the downtown
+    # loop) has more than one pattern; each gets its own line + variant label so
+    # every pattern is visible on the map. Single-pattern routes keep one line.
+    pat_map = {}  # (rid, did) -> {stop_ids_tuple: rep_trip_id}
     for tid, stop_ids in seq.items():
         t = trips.get(tid)
         if not t:
             continue
         key = (t["route_id"], t["direction_id"])
-        if key not in rep or len(stop_ids) > len(rep[key][1]):
-            rep[key] = (tid, stop_ids)
+        pat_map.setdefault(key, {}).setdefault(tuple(stop_ids), tid)
 
     # Hand-traced geometry, if present, wins over OSRM. shapes.txt rows look like
     # SHP_<route_id>_<direction_id>; we key them back to (route_id, direction_id).
-    traced = load_shapes()
+    traced = load_shapes()          # primary + branch spurs, for single-pattern routes
+    pieces = load_pieces(read_csv("shapes.txt"))  # composer input, per (rid, did)
     if traced:
         print(f"Loaded {len(traced)} hand-traced shape(s) from shapes.txt")
 
     lines = []
-    for (rid, did), (tid, stop_ids) in sorted(rep.items()):
-        pts = [stops[s] for s in stop_ids if s in stops]
-        coords = [(p["lon"], p["lat"]) for p in pts]
-        label = f"{rid} dir {did}"
-        branches = []
-        if (rid, did) in traced:
-            entry = traced[(rid, did)]
-            branches = entry["branches"]
-            geom = entry["primary"]
-            if geom is None:  # only branches traced — promote the first to primary
-                geom = branches.pop(0) if branches else [[p["lat"], p["lon"]] for p in pts]
-            total = len(geom) + sum(len(b) for b in branches)
-            note = f" + {len(branches)} branch(es)" if branches else ""
-            print(f"Tracing {label}: {len(geom)} primary{note} pts, {total} total (shapes.txt)")
-        else:
-            print(f"Routing {label}: {len(coords)} stops ({tid})")
-            geom = osrm_geometry(coords) if len(coords) >= 2 else None
-            if geom is None:
-                # Fall back to straight stop-to-stop so the line still shows.
-                geom = [[p["lat"], p["lon"]] for p in pts]
-                print(f"    -> fell back to straight segments")
-            time.sleep(1)  # be polite to the public OSRM demo server
-        lines.append(
-            {
-                "route_id": rid,
-                "direction_id": did,
-                "headsign": trips[tid]["headsign"],
-                "stop_ids": stop_ids,
-                "geometry": geom,
-                "branches": branches,
-                "snapped": geom is not None and len(geom) > len(pts),
-            }
-        )
+    for (rid, did) in sorted(pat_map):
+        # fullest pattern first; the rest are "skraćeni" (shortened) variants.
+        pats = sorted(pat_map[(rid, did)].items(), key=lambda kv: -len(kv[0]))
+        multi = len(pats) > 1
+        for idx, (stop_ids_t, tid) in enumerate(pats):
+            stop_ids = list(stop_ids_t)
+            pts = [stops[s] for s in stop_ids if s in stops]
+            variant = None if idx == 0 else ("skraćeni" if len(pats) == 2
+                                             else f"varijanta {idx + 1}")
+            label = f"{rid} dir {did}" + (f" [{variant}]" if variant else "")
+            branches = []
+            if multi and (rid, did) in pieces:
+                # Compose this exact pattern along the traced pieces so short
+                # variants follow their real shortcut instead of the full route.
+                geom, straight = compose(stop_ids, stops, pieces[(rid, did)])
+                note = f" ({straight} straight hop(s))" if straight else ""
+                print(f"Composing {label}: {len(stop_ids)} stops -> {len(geom)} pts{note}")
+            elif (rid, did) in traced:
+                entry = traced[(rid, did)]
+                branches = entry["branches"]
+                geom = entry["primary"]
+                if geom is None:  # only branches traced — promote first to primary
+                    geom = branches.pop(0) if branches else [[p["lat"], p["lon"]] for p in pts]
+                total = len(geom) + sum(len(b) for b in branches)
+                bnote = f" + {len(branches)} branch(es)" if branches else ""
+                print(f"Tracing {label}: {len(geom)} primary{bnote} pts, {total} total")
+            else:
+                coords = [(p["lon"], p["lat"]) for p in pts]
+                print(f"Routing {label}: {len(coords)} stops ({tid})")
+                geom = osrm_geometry(coords) if len(coords) >= 2 else None
+                if geom is None:
+                    geom = [[p["lat"], p["lon"]] for p in pts]
+                    print(f"    -> fell back to straight segments")
+                time.sleep(1)  # be polite to the public OSRM demo server
+            lines.append(
+                {
+                    "route_id": rid,
+                    "direction_id": did,
+                    "headsign": trips[tid]["headsign"],
+                    "variant": variant,
+                    "stop_ids": stop_ids,
+                    "geometry": geom,
+                    "branches": branches,
+                    "snapped": geom is not None and len(geom) > len(pts),
+                }
+            )
 
     payload = {
         "stops": list(stops.values()),

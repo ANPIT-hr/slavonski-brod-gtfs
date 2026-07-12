@@ -103,11 +103,15 @@ export function createGeometry(D, getTrip) {
 	const stopById = {};
 	D.stops.forEach((s) => (stopById[s.id] = s));
 	const lineGeoms = {};
+	// A route+direction can have several stop patterns (full + shortened), each
+	// its own line in D.lines. Accumulate every pattern's geometry as matcher
+	// pieces so a ride leg highlights against whichever pattern it belongs to.
 	D.lines.forEach((ln) => {
 		const k = ln.route_id + '|' + ln.direction_id;
-		lineGeoms[k] = [ln.geometry]
+		const pieces = [ln.geometry]
 			.concat(ln.branches || [])
 			.filter((p) => Array.isArray(p) && p.length >= 2);
+		lineGeoms[k] = (lineGeoms[k] || []).concat(pieces);
 	});
 
 	function rideLeg(l) {

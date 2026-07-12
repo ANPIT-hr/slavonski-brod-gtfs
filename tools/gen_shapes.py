@@ -31,7 +31,7 @@ DATE, TIME = "2026-06-29", "10:00"
 # Shapes hand-corrected in the web editor (drag stops / redraw line). These are
 # preserved VERBATIM from the current gtfs/shapes.txt and never regenerated, so
 # manual route work survives a re-run. Remove an id here to let it regenerate.
-LOCKED_SHAPES = {"SHP_L1_0", "SHP_L2_0", "SHP_L4_0"}
+LOCKED_SHAPES = {"SHP_L1_0", "SHP_L1P_0", "SHP_L2_0", "SHP_L3_0", "SHP_L4_0", "SHP_L5_0"}
 
 
 def haversine(a, b):
@@ -167,6 +167,16 @@ def main():
                 if i:
                     dist += haversine(poly[i - 1], p)
                 w.writerow([sid, f"{p[0]:.6f}", f"{p[1]:.6f}", i, round(dist, 1)])
+
+        # Preserve branch spurs (SHP_..._B<n>) verbatim. These are added by the
+        # web editor / tools/add_short_spurs.py and are never regenerated here, so
+        # without this pass a re-run would silently drop them.
+        import re as _re
+        for sid in existing_shapes:
+            if _re.search(r"_B\d+$", sid):
+                for r in existing_shapes[sid]:
+                    w.writerow([sid, r["shape_pt_lat"], r["shape_pt_lon"],
+                                r["shape_pt_sequence"], r.get("shape_dist_traveled", "")])
 
     # Rewrite trips.txt with shape_id appended (if absent).
     if "shape_id" not in trip_fields:

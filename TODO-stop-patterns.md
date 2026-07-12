@@ -53,27 +53,55 @@ Full timetable stop order (26 rows), position → stop_id:
   `_A`, second = return `_B`; single-occurrence stops keep their sole id).
 
 ## Implementation steps
-1. **stops.txt** — create `STOP_KAUFLAND` (45.16149, 18.018636).
-2. **stop_times.txt** — rebuild L3/L1/L5 trips from their timetable columns
-   (skip `-` cells, exact times, renumber `stop_sequence`). This yields correct
-   per-trip patterns automatically.
-3. **Variant shapes** — one shape per distinct pattern. Naming scheme + parser
-   update needed:
-   - Pick a scheme, e.g. `SHP_<route>_<dir>_p<n>` (p0 = fullest). Update
-     `web/build_map.py` `load_shapes()` (currently `base.rsplit("_",1)` →
-     route,dir) to also carry the pattern index, and `tools/gen_shapes.py`
-     naming + `LOCKED_SHAPES`.
-   - FULL L3 shape ≈ current `SHP_L3_0` (already routes via Tržnica; must also
-     pass KAUFLAND on the return). SHORT L3 shape = same but outbound goes
-     BUS → Budainka directly (no Tržnica/Korzo/Borovska).
-4. **build_map.py** — group trips by `(route, dir, stop-pattern signature)`;
-   emit one `line` per pattern with its own shape + a variant label
-   (e.g. "puni"/"skraćeni"); assign `shape_id` per trip in trips.txt.
-5. **web** — show/toggle the variant lines so each pattern is verifiable
-   (`lines[]` already carries per-line geometry; add a variant label field).
-6. Rebuild (`build_map.py`), validate (`scripts/validate.sh`), render each
-   variant, confirm with user.
-7. Re-lock shapes in `gen_shapes.py` once approved.
+1. **stops.txt** — ✅ DONE. `STOP_KAUFLAND` created (45.161490, 18.018636).
+2. **stop_times.txt** — ✅ DONE. L1/L3/L5 trips fully rebuilt from the timetable
+   columns by `tools/gen_patterns.py` (fixed per-route position→stop_id maps;
+   skip `-` cells; exact times; renumbered `stop_sequence`). This also corrected
+   the trip *sets*, which were wrong before: L3 12+10+4=26 trips (was 22, missing
+   6:10/7:00/10:30/19:15 weekday etc.), L5 8+7+4=19 (was 23, wrong order/poles),
+   L1 kept 27 but now models the weekday-5:00 skip. Each route now has 2 distinct
+   patterns (full + short). L0/L1P/L2/L4/L6 untouched. Re-run with
+   `python3 tools/gen_patterns.py`.
+3. **Variant shapes** — ✅ DONE automatically. No `gen_shapes.py` naming refactor
+   was needed: `scripts/build_feed.py` already composes **one shape per distinct
+   (route, dir, stop pattern)** at feed-build time → `SHP_L3_0_P1` (short, 23) and
+   `SHP_L3_0_P2` (full, 26), likewise L1/L5. 12 composed shapes total.
+   - Known limitation: the SHORT patterns create stop-pairs absent from the
+     traced geometry (e.g. L3 BUS→Budainka directly), so those hops fall back to
+     straight lines ("N straight hop(s)" in build_feed output). The full patterns
+     route correctly. Fixing the short shortcuts needs a hand-traced spur in the
+     dev-mode editor (see step 7).
+6. **Validated** — ✅ `scripts/validate.sh dist/…zip`: 0 ERRORS. The 6 WARNINGs /
+   2 INFOs are all pre-existing on untouched routes (L2/L4 shapes,
+   digit-initial stop names) — zero new issues from this work.
+
+4/5. **build_map.py / web variant lines** — ✅ DONE. `web/build_map.py` now emits
+   one `line` per distinct pattern for multi-pattern routes (L1/L3/L5): the
+   fullest is the primary; each shorter one is a `variant` ("skraćeni") with its
+   own **composed** geometry (via the shared `tools/shape_compose.py`), so a short
+   line follows its real shortcut, not the full route. `MapController` draws
+   variants dashed with their own toggle key, skips duplicate stop markers, and
+   excludes them from the dev-mode shape editor's route picker (the editor still
+   only edits the primary). `LinesPanel` lists each pattern as its own toggle
+   ("L3 (puni)" / "L3 (skraćeni)"). `geometry.js` accumulates all patterns'
+   geometry so the planner highlights rides against the right pattern.
+   Single-pattern routes (L0/L1P/L2/L4/L6) render exactly as before.
+7. **gen_shapes.py** — ✅ DONE. Short-pattern shortcuts traced as `_B1` spurs
+   (`tools/add_short_spurs.py`, OSRM-routed): L1 BUS→Vinogradska, L3 BUS→Budainka,
+   L5 BUS→Colosseum, plus `SHP_L3_0_B2` for the Jadranska→Borovska return gap.
+   build_feed now composes all L1/L3/L5 patterns with **0 straight hops**. L3 & L5
+   added to `LOCKED_SHAPES`; `gen_shapes.py` now also preserves `_B` spurs verbatim
+   (it previously would have silently dropped them on a re-run).
+
+## Pipeline / how to regenerate everything
+```
+python3 tools/gen_patterns.py      # rebuild L1/L3/L5 trips+stop_times from markdown
+python3 tools/add_short_spurs.py   # (re)add short-pattern shortcut spurs (needs OSRM)
+python3 web/build_map.py           # web data.json + schedule.json (variant lines)
+python3 tools/coord_status.py      # refresh markdown coord-status blocks
+python3 scripts/build_feed.py      # compose per-pattern shapes -> dist zip
+scripts/validate.sh dist/slavonski-brod-gtfs.zip
+```
 
 ## Already done this session (committed)
 - **L3 shape**: rerouted the eastern loop down through Tржnica via the Štampara
