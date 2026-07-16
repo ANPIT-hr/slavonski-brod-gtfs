@@ -44,8 +44,8 @@ STOP_JANISEVAC_1,Janiševac I,45.190793,18.029138,L1+ (repositioned)
 STOP_JANISEVAC_2,Janiševac II,45.192563,18.029358,L1+ (repositioned)
 STOP_JANISEVAC_3,Janiševac III,45.195719,18.030683,L1+ (repositioned)
 STOP_JANISEVAC_4,Janiševac IV,45.196160,18.030477,L1+ (repositioned)
-STOP_JANISEVAC_5,Janiševac V,45.193062,18.025024,L1+ (repositioned)
-STOP_JANISEVAC_6,Janiševac VI (Š. Striborova),45.191428,18.025156,L1+ (repositioned)
+STOP_JANISEVAC_5,Janiševac V,45.193430,18.028924,L1+ (on Janiševac I)
+STOP_JANISEVAC_6,Janiševac VI (Š. Striborova),45.191313,18.029189,L1+ (on Janiševac I)
 STOP_E_KUMICICA_1,E. Kumičića I,45.167192,18.018512,PLACEHOLDER LOCATION — replace with actual coordinates
 STOP_E_KUMICICA_2,E. Kumičića II,45.172886,18.019187,PLACEHOLDER LOCATION — replace with actual coordinates
 STOP_SV_ANTUNA_1,Sv. Antuna I,45.176146,18.018565,PLACEHOLDER LOCATION — replace with actual coordinates
