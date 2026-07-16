@@ -1,2 +1,2 @@
 feed_publisher_name,feed_publisher_url,feed_lang,default_lang,feed_start_date,feed_end_date,feed_version,feed_contact_email
-Grad Slavonski Brod (in coordination with Terzić-bus d.o.o.),https://www.slavonski-brod.hr,hr,hr,20260601,20270531,1.1-2026-07,terzicbus@gmail.com
+Grad Slavonski Brod (in coordination with Terzić-bus d.o.o.),https://www.slavonski-brod.hr,hr,hr,20260601,20270531,1.2-2026-07,terzicbus@gmail.com
