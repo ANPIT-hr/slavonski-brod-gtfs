@@ -11,8 +11,8 @@ Auto-generated from `gtfs/stops.txt`. ✅ = real coordinate set, ⬜ = still pla
 - ✅ Borovska `STOP_BOROVSKA_B`
 - ✅ Trg. centar Colosseum `STOP_COLOSSEUM`
 - ✅ Borovska `STOP_BOROVSKA_A`
-- ✅ Korzo `STOP_KORZO_A`
 - ✅ Tržnica `STOP_TRZNICA_A`
+- ✅ Korzo `STOP_KORZO_A`
 
 <!-- COORD-STATUS:END -->
 

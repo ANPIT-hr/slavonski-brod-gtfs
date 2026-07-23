@@ -25,7 +25,7 @@ Auto-generated from `gtfs/stops.txt`. ✅ = real coordinate set, ⬜ = still pla
 - ⬜ Kerdeni III `STOP_KERDENI_3`
 - ⬜ Trg sv. Antuna `STOP_TRG_SV_ANTUNA`
 - ✅ Ulica sv. Antuna I `STOP_UL_SV_ANTUNA_1`
-- ⬜ Ulica sv. Antuna II `STOP_UL_SV_ANTUNA_2`
+- ⬜ Sv. Antuna I `STOP_SV_ANTUNA_1`
 - ✅ Kumičićeva I `STOP_KUMICICEVA_1`
 - ✅ Kumičićeva II `STOP_KUMICICEVA_2`
 - ⬜ Kumičićeva III `STOP_KUMICICEVA_3`
