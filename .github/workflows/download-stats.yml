@@ -1,0 +1,36 @@
+name: download-stats
+
+# Daily snapshot of GTFS release download counts into stats/downloads.csv.
+# GitHub only exposes cumulative totals, so daily usage = difference between rows.
+
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Append counts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p stats
+          f=stats/downloads.csv
+          [ -f "$f" ] || echo "date,tag,asset,download_count" > "$f"
+          d=$(date -u +%F)
+          grep -q "^$d," "$f" && exit 0
+          gh api "repos/${{ github.repository }}/releases" --paginate \
+            --jq '.[] | .tag_name as $t | .assets[] | [$t, .name, .download_count] | @csv' \
+            | sed "s/^/$d,/" >> "$f"
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add stats/downloads.csv
+          git diff --cached --quiet || { git commit -m "stats: download snapshot $(date -u +%F)"; git push; }
