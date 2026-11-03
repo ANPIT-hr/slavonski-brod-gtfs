@@ -98,3 +98,9 @@ See [docs/workflow.md](docs/workflow.md) for the full release flow.
 ---
 
 Source: timetables published at slavonski-brod.hr (January 2024 edition).
+
+## Usage stats
+
+`.github/workflows/download-stats.yml` runs daily (03:00 UTC) and appends the cumulative download count of every release asset to `stats/downloads.csv`. Daily downloads = difference between consecutive days. Manual run: `gh workflow run download-stats.yml`. Live check: `gh api repos/ANPIT-hr/slavonski-brod-gtfs/releases --jq '.[] | [.tag_name, .assets[0].download_count]'`.
+
+Note: counts measure feed fetches by consumers (Google, Apple, validators, us), not end users. Viewing a route in Google Maps does not download the feed.
